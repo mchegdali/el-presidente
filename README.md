@@ -13,6 +13,8 @@ entre son nom et c'est parti.
 - Le premier joueur d'un pli choisit le format (simple, paire, brelan, carré) ; tout le pli
   garde ce format. On suit avec une valeur **égale ou supérieure**, ou on passe (on peut
   revenir dans le même pli après avoir passé).
+- **Carte ou rien** : en simples, quand deux cartes de même valeur se suivent (7 puis 7),
+  le suivant doit jouer cette valeur ou passer.
 - Tout le monde passe : le dernier à avoir joué relance.
 - **Le 2 ferme le pli.**
 - **Coupe à 4** : dès que les 4 cartes d'une valeur sont sur le pli (7, 7, 7, 7 ou 7-7 puis
@@ -22,7 +24,8 @@ entre son nom et c'est parti.
   (pas de Vices à 3 joueurs).
 - Manche suivante : le Trou-du-cul donne automatiquement ses 2 meilleures cartes au
   Président, qui lui en rend 2 de son choix ; idem avec 1 carte entre Vice-Trou-du-cul et
-  Vice-Président. Le Trou-du-cul commence (tirage au sort à la 1re manche).
+  Vice-Président. Le Trou-du-cul commence ; à la 1re manche, c'est celui qui a la Dame de
+  cœur.
 
 ## Architecture
 

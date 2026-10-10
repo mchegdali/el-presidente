@@ -43,7 +43,16 @@ async function forceRound(db, t, hands, turn) {
   await db.query(`update public.lobbies set status = 'playing' where code = $1`, [t.code]);
 }
 
-function legalPlays(hand, trickSize, trickRank) {
+// Carte ou rien : en simples, deux cartes de même valeur de suite imposent cette valeur.
+function forcedRank(trick, trickSize) {
+  if (trickSize !== 1) return null;
+  const plays = trick.filter((t) => t.c);
+  if (plays.length < 2) return null;
+  const [a, b] = plays.slice(-2).map((t) => rank(t.c[0]));
+  return a === b ? a : null;
+}
+
+function legalPlays(hand, trickSize, trickRank, forced = null) {
   const byRank = new Map();
   for (const c of hand) {
     const r = rank(c);
@@ -53,7 +62,7 @@ function legalPlays(hand, trickSize, trickRank) {
   for (const [r, cards] of byRank) {
     if (trickSize === 0) {
       for (let k = 1; k <= cards.length; k++) plays.push(cards.slice(0, k));
-    } else if (cards.length >= trickSize && r >= trickRank) {
+    } else if (cards.length >= trickSize && r >= trickRank && (forced === null || r === forced)) {
       plays.push(cards.slice(0, trickSize));
     }
   }
@@ -99,7 +108,12 @@ async function playRandomRound(db, t) {
     assert.equal(all.length + played, 52);
     assert.equal(new Set(all).size, all.length);
 
-    const plays = legalPlays(me.hand, me.game.trick_size, me.game.trick_rank);
+    const plays = legalPlays(
+      me.hand,
+      me.game.trick_size,
+      me.game.trick_rank,
+      forcedRank(me.game.trick, me.game.trick_size),
+    );
     const canPass = me.game.trick_size > 0;
     if (plays.length === 0 || (canPass && Math.random() < 0.3)) {
       assert.ok(canPass, 'un joueur qui ouvre a toujours un coup');
@@ -134,6 +148,10 @@ describe('parties complètes aléatoires', () => {
         assert.equal(started.lobby.round_no, round);
         if (round === 1) {
           assert.equal(started.game.phase, 'playing');
+          // La Dame de cœur commence la première manche.
+          const first = await stateOf(db, t, started.game.turn);
+          assert.ok(first.hand.includes('QH'), 'le premier joueur a la Dame de cœur');
+          assert.equal(started.game.events[0].reason, 'queen');
         } else {
           assert.equal(started.game.phase, 'exchange');
           // Le Trou-du-cul de la manche précédente commence.
@@ -269,6 +287,55 @@ describe('règles', () => {
       s.players.map((p) => p.role),
       ['president', 'trou', 'neutral'],
     );
+  });
+
+  test('carte ou rien : après deux simples de même valeur, il faut suivre cette valeur ou passer', async () => {
+    const db = await createDb();
+    const t = await setupTable(db, 4);
+    await forceRound(db, t, [['7S', '3S'], ['7H', '4S'], ['9D', '7D', '5S'], ['KC', '6S']], 0);
+    await play(db, t, t.ids[0], ['7S']);
+    let s = await play(db, t, t.ids[1], ['7H']);
+    await rejects(play(db, t, t.ids[2], ['9D']), /7 ou rien/);
+    s = await pass(db, t, t.ids[2]);
+    // Le joueur suivant est aussi contraint, même après une passe.
+    await rejects(play(db, t, t.ids[3], ['KC']), /7 ou rien/);
+    s = await pass(db, t, t.ids[3]);
+    assert.equal(s.game.turn, t.ids[0]);
+    s = await pass(db, t, t.ids[0]);
+    assert.equal(s.game.events.at(-1).type, 'won', 'les trois autres ont passé : B remporte le pli');
+    assert.equal(s.game.turn, t.ids[1]);
+  });
+
+  test('carte ou rien : la contrainte disparaît quand les deux dernières cartes diffèrent', async () => {
+    const db = await createDb();
+    const t = await setupTable(db, 3);
+    await forceRound(db, t, [['5S', '8S', '3S'], ['6H', '4S'], ['8D', '5H']], 0);
+    await play(db, t, t.ids[0], ['5S']);
+    await play(db, t, t.ids[1], ['6H']);
+    let s = await play(db, t, t.ids[2], ['8D']);
+    s = await play(db, t, t.ids[0], ['8S']); // 8 puis 8 : 8 ou rien
+    await rejects(play(db, t, t.ids[1], ['4S']), /8 ou rien|égale ou supérieure/);
+    assert.equal(s.game.turn, t.ids[1]);
+  });
+
+  test('carte ou rien ne s’applique pas aux paires', async () => {
+    const db = await createDb();
+    const t = await setupTable(db, 3);
+    await forceRound(db, t, [['6S', '6H', '3S'], ['6D', '6C', '4S'], ['9D', '9H', '5S']], 0);
+    await play(db, t, t.ids[0], ['6S', '6H']);
+    const s = await play(db, t, t.ids[1], ['6D', '6C']); // coupe à 4, pas de contrainte
+    assert.equal(s.game.events.at(-1).type, 'cut');
+  });
+
+  test('la Dame de cœur commence la première manche', async () => {
+    for (let i = 0; i < 5; i++) {
+      const db = await createDb();
+      const t = await setupTable(db, 4);
+      const s = await rpc(db, 'start_round', { p_code: t.code, p_token: t.host });
+      const first = await stateOf(db, t, s.game.turn);
+      assert.ok(first.hand.includes('QH'));
+      await db.close();
+    }
   });
 
   test('échanges : le Président et le Vice rendent les cartes de leur choix', async () => {

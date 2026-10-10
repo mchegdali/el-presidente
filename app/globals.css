@@ -847,6 +847,11 @@ a {
   font-size: 0.9rem;
 }
 
+.trick__format--forced {
+  background: var(--rosa);
+  border: 2px solid var(--amarillo);
+}
+
 .trick__format--soft {
   opacity: 0.85;
 }

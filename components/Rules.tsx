@@ -10,7 +10,14 @@ export default function Rules({ open = false }: { open?: boolean }) {
           Le premier joueur d&apos;un pli choisit le format : simple, paire, brelan ou carré. Tout le pli suit ce
           format.
         </li>
+        <li>
+          À la première manche, celui qui a la <strong>Dame de cœur</strong> commence.
+        </li>
         <li>On suit avec une valeur égale ou supérieure, ou on passe. On peut passer puis revenir dans le même pli.</li>
+        <li>
+          <strong>Carte ou rien</strong> : en simples, quand deux cartes de même valeur se suivent (7 puis 7), le
+          suivant doit jouer un 7 ou passer.
+        </li>
         <li>Quand tout le monde passe, le dernier à avoir joué relance.</li>
         <li>
           <strong>Le 2 ferme le pli</strong> : celui qui le pose relance.

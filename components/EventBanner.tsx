@@ -23,7 +23,12 @@ function describe(ev: GameEvent, nameOf: (id: string) => string, roundNo: number
         tone: ev.position === 1 ? 'big' : 'small',
       };
     case 'round_start':
-      return { key: ev.seq, title: `Ronda ${roundNo}`, text: `${who} commence`, tone: 'small' };
+      return {
+        key: ev.seq,
+        title: `Ronda ${roundNo}`,
+        text: ev.reason === 'queen' ? `${who} a la Dame de cœur et commence` : `${who} commence`,
+        tone: 'small',
+      };
     case 'exchange_done':
       return { key: ev.seq, title: 'Cartes échangées', text: `${who} commence`, tone: 'small' };
     default:

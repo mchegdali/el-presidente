@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FORMAT_LABELS,
+  forcedRank,
   playableCards,
   rankOf,
   rankValueLabel,
@@ -76,11 +77,12 @@ export default function GameView({ state, table }: { state: TableState; table: T
     });
   };
 
+  const forced = forcedRank(game.trick, game.trick_size);
   const selection = sortCards([...selected]);
-  const problem = myTurn ? selectionProblem(selection, game.trick_size, game.trick_rank) : null;
+  const problem = myTurn ? selectionProblem(selection, game.trick_size, game.trick_rank, forced) : null;
   const playable = useMemo(
-    () => (myTurn ? playableCards(hand, game.trick_size, game.trick_rank) : null),
-    [myTurn, hand, game.trick_size, game.trick_rank],
+    () => (myTurn ? playableCards(hand, game.trick_size, game.trick_rank, forced) : null),
+    [myTurn, hand, game.trick_size, game.trick_rank, forced],
   );
 
   const play = async () => {
@@ -228,6 +230,7 @@ function TrickPile({ entries, nameOf, faded }: { entries: TrickEntry[]; nameOf: 
 }
 
 function TrickArea({ game, nameOf }: { game: Game; nameOf: (id: string) => string }) {
+  const forced = forcedRank(game.trick, game.trick_size);
   const hasTrick = game.trick.some((t) => t.c);
   if (game.phase === 'exchange') {
     return (
@@ -240,8 +243,9 @@ function TrickArea({ game, nameOf }: { game: Game; nameOf: (id: string) => strin
     <div className="trick">
       {hasTrick ? (
         <>
-          <div className="trick__format">
-            {FORMAT_LABELS[game.trick_size]} · {rankValueLabel(game.trick_rank)} ou plus
+          <div className={`trick__format ${forced ? 'trick__format--forced' : ''}`}>
+            {FORMAT_LABELS[game.trick_size]} ·{' '}
+            {forced ? `${rankValueLabel(forced)} ou rien !` : `${rankValueLabel(game.trick_rank)} ou plus`}
           </div>
           <TrickPile entries={game.trick} nameOf={nameOf} />
         </>
@@ -269,6 +273,7 @@ function StatusLine({
   nameOf: (id: string) => string;
 }) {
   const role = myPlayer?.role ? ROLE_INFO[myPlayer.role] : null;
+  const forced = forcedRank(game.trick, game.trick_size);
   const myPosition = game.finished.indexOf(me) + 1;
   let text: React.ReactNode;
   if (myPosition) {
@@ -281,7 +286,8 @@ function StatusLine({
         <strong>À vous d&apos;ouvrir le pli !</strong>
       ) : (
         <strong>
-          À vous ! {FORMAT_LABELS[game.trick_size]}, {rankValueLabel(game.trick_rank)} ou plus
+          À vous ! {FORMAT_LABELS[game.trick_size]},{' '}
+          {forced ? `${rankValueLabel(forced)} ou rien` : `${rankValueLabel(game.trick_rank)} ou plus`}
         </strong>
       );
   } else {

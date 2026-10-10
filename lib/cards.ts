@@ -1,3 +1,5 @@
+import type { TrickEntry } from './types';
+
 // Cartes : 2 caractères, valeur puis couleur ('TH' = 10 de cœur).
 // Ordre du Président : 3 < 4 < … < R < A < 2.
 
@@ -67,26 +69,51 @@ export const FORMAT_LABELS: Record<number, string> = {
 };
 
 /**
+ * Carte ou rien : en simples, si les deux dernières cartes posées ont la même
+ * valeur, seule cette valeur peut suivre. Retourne la valeur imposée, sinon null.
+ */
+export function forcedRank(trick: TrickEntry[], trickSize: number): number | null {
+  if (trickSize !== 1) return null;
+  const plays = trick.filter((t) => t.c);
+  if (plays.length < 2) return null;
+  const [a, b] = plays.slice(-2).map((t) => rankOf(t.c![0]));
+  return a === b ? a : null;
+}
+
+/**
  * Vérifie une sélection côté client (le serveur reste seul juge).
  * Retourne null si le coup est jouable, sinon la raison.
  */
-export function selectionProblem(selected: string[], trickSize: number, trickRank: number): string | null {
+export function selectionProblem(
+  selected: string[],
+  trickSize: number,
+  trickRank: number,
+  forced: number | null = null,
+): string | null {
   if (selected.length === 0) return 'Sélectionnez vos cartes';
   if (new Set(selected.map(rankOf)).size > 1) return 'Les cartes doivent avoir la même valeur';
   if (trickSize === 0) return selected.length > 4 ? '4 cartes maximum' : null;
   if (selected.length !== trickSize) return `Il faut ${FORMAT_LABELS[trickSize].toLowerCase()}`;
+  if (forced !== null && rankOf(selected[0]) !== forced) return `${rankValueLabel(forced)} ou rien`;
   if (rankOf(selected[0]) < trickRank) return `Il faut ${rankValueLabel(trickRank)} ou plus`;
   return null;
 }
 
 /** Cartes pouvant participer à un coup légal dans le pli en cours. */
-export function playableCards(hand: string[], trickSize: number, trickRank: number): Set<string> {
+export function playableCards(
+  hand: string[],
+  trickSize: number,
+  trickRank: number,
+  forced: number | null = null,
+): Set<string> {
   if (trickSize === 0) return new Set(hand);
   const byRank = new Map<number, string[]>();
   for (const c of hand) byRank.set(rankOf(c), [...(byRank.get(rankOf(c)) ?? []), c]);
   const ok = new Set<string>();
   for (const [r, cards] of byRank) {
-    if (r >= trickRank && cards.length >= trickSize) cards.forEach((c) => ok.add(c));
+    if (r >= trickRank && cards.length >= trickSize && (forced === null || r === forced)) {
+      cards.forEach((c) => ok.add(c));
+    }
   }
   return ok;
 }

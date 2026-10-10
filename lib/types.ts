@@ -36,6 +36,8 @@ export interface GameEvent {
   type: GameEventType;
   player?: string;
   position?: number;
+  /** round_start : pourquoi ce joueur commence. */
+  reason?: 'queen' | 'trou';
 }
 
 export interface Game {
