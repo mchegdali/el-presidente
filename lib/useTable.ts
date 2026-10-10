@@ -63,10 +63,12 @@ export function useTable(code: string) {
     };
   }, [lobbyId, refresh]);
 
-  // Filet de sécurité : relecture régulière (fréquente si le temps réel est coupé).
+  // Filet de sécurité : relecture régulière, plus fréquente si le temps réel est coupé.
+  // Même abonné, un broadcast peut se perdre côté serveur (partition realtime.messages
+  // absente) : on garde donc une relecture assez rapprochée.
   useEffect(() => {
     refresh();
-    const timer = setInterval(refresh, live ? 12000 : 2000);
+    const timer = setInterval(refresh, live ? 4000 : 2000);
     const onVisible = () => {
       if (document.visibilityState === 'visible') refresh();
     };
