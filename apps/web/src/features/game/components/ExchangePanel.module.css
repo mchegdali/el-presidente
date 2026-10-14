@@ -1,0 +1,22 @@
+@layer components {
+  .exchange h3 {
+    margin-block-end: 6px;
+  }
+
+  .line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+  }
+
+  .mini {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .miniCard {
+    --card-w: 46px;
+  }
+}

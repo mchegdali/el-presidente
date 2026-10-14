@@ -1,0 +1,55 @@
+@layer components {
+  .banner {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    margin: 0 auto;
+    inline-size: fit-content;
+    max-inline-size: 92%;
+    text-align: center;
+    background: var(--amarillo);
+    color: var(--cafe);
+    border: 3px solid var(--cafe);
+    border-radius: 16px;
+    padding: 10px 22px;
+    box-shadow: 0 6px 0 var(--cafe);
+    z-index: 20;
+    animation: pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+    pointer-events: none;
+  }
+
+  .big .title {
+    font-size: 2.1rem;
+    color: var(--rosa);
+  }
+
+  .small {
+    background: var(--crema);
+    padding: 6px 16px;
+
+    & .title {
+      font-size: 1.2rem;
+    }
+  }
+
+  .title,
+  .text {
+    display: block;
+  }
+
+  .text {
+    font-weight: 700;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.4) rotate(-6deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}

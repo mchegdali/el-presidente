@@ -1,0 +1,27 @@
+@layer components {
+  .header {
+    margin-block-end: 16px;
+
+    & h1 {
+      font-size: 2.4rem;
+      margin: 8px 0 4px;
+    }
+  }
+
+  .back {
+    color: var(--crema);
+    text-decoration: none;
+    opacity: 0.8;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-block-end: 16px;
+  }
+
+  .card {
+    --card-w: 112px;
+  }
+}

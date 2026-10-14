@@ -1,0 +1,34 @@
+@layer components {
+  .page {
+    max-inline-size: 1100px;
+    margin: 0 auto;
+    padding: 16px;
+    padding-block-end: calc(16px + env(safe-area-inset-bottom));
+
+    @media (width <= 420px) {
+      padding: 10px;
+    }
+  }
+
+  .centered {
+    min-block-size: calc(100dvh - 70px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loading {
+    font-size: 1.4rem;
+    animation: pulse 1.2s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}

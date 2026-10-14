@@ -10,9 +10,10 @@
     "bun.lock",
     "tests/**",
     "scripts/**",
-    "apps/web/app/**",
-    "apps/web/components/**",
-    "apps/web/lib/**",
-    "apps/web/public/**"
+    "apps/web/public/**",
+    "**/types/**",
+    "**/dist/**",
+    "apps/web/.next/**",
+    "apps/web/next-env.d.ts"
   ]
 }

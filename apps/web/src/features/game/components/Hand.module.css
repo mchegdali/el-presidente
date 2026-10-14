@@ -1,0 +1,30 @@
+@layer components {
+  .hand {
+    position: relative;
+    inline-size: 100%;
+  }
+
+  .row {
+    position: relative;
+  }
+
+  .card {
+    position: absolute;
+    inset-block-start: 0;
+  }
+
+  /* Hors de son tour, la main s'efface ; à son tour, les cartes jouables ressortent. */
+  .idle .card {
+    filter: brightness(0.62) saturate(0.55) drop-shadow(0 2px 2px rgb(0 0 0 / 0.35));
+  }
+
+  .active .playable {
+    filter: brightness(1.08) drop-shadow(0 0 6px rgb(242 183 5 / 0.9));
+    transform: translateY(-6%);
+  }
+
+  .empty {
+    text-align: center;
+    padding: 20px 0;
+  }
+}

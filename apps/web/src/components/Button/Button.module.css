@@ -1,0 +1,70 @@
+@layer components {
+  .btn {
+    appearance: none;
+    border: 2px solid var(--cafe);
+    border-radius: 999px;
+    padding: 12px 22px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--crema);
+    background: var(--rosa);
+    box-shadow: 0 4px 0 var(--cafe);
+    text-align: center;
+    line-height: 1.2;
+    transition:
+      transform 0.08s,
+      box-shadow 0.08s,
+      filter 0.15s;
+
+    &:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--cafe);
+    }
+
+    &:disabled {
+      filter: grayscale(0.7) brightness(0.75);
+      cursor: not-allowed;
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--amarillo);
+      outline-offset: 2px;
+    }
+  }
+
+  .rosa {
+    background: var(--rosa);
+  }
+
+  .gold {
+    background: var(--amarillo);
+    color: var(--cafe);
+  }
+
+  .green {
+    background: var(--verde);
+  }
+
+  .ghost {
+    background: transparent;
+    border-color: rgb(255 244 220 / 0.5);
+    box-shadow: none;
+  }
+
+  .small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 0 var(--cafe);
+  }
+
+  .big {
+    font-size: 1.15rem;
+    padding: 16px 28px;
+  }
+
+  .block {
+    display: block;
+    inline-size: 100%;
+  }
+}

@@ -1,0 +1,9 @@
+@layer components {
+  .on {
+    margin: 0;
+  }
+
+  .compact button {
+    inline-size: 100%;
+  }
+}

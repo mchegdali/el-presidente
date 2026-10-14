@@ -152,3 +152,6 @@ vite.config.ts.timestamp-*
 next-env.d.ts
 .vercel
 apps/api/dist
+types
+test-results
+playwright-report

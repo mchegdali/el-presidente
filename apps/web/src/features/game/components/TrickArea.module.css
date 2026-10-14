@@ -1,0 +1,106 @@
+@layer components {
+  .trick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 8px 18px;
+    inline-size: 100%;
+  }
+
+  .format {
+    background: rgb(0 0 0 / 0.35);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .forced {
+    background: var(--rosa);
+    border: 2px solid var(--amarillo);
+  }
+
+  .soft {
+    opacity: 0.85;
+  }
+
+  .hint {
+    font-size: 1.3rem;
+    opacity: 0.75;
+    margin: 0;
+  }
+
+  .pile {
+    position: relative;
+    block-size: 150px;
+    inline-size: 100%;
+    display: flex;
+    justify-content: center;
+
+    @container table (width >= 760px) {
+      block-size: 180px;
+    }
+  }
+
+  .faded {
+    opacity: 0.55;
+    filter: saturate(0.7);
+  }
+
+  .play {
+    position: absolute;
+    inset-block-start: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.25s ease;
+  }
+
+  .top {
+    animation: drop 0.28s ease-out;
+  }
+
+  .cards {
+    display: flex;
+  }
+
+  .card {
+    --card-w: 78px;
+
+    & + & {
+      margin-inline-start: -46px;
+    }
+
+    @container table (width >= 760px) {
+      --card-w: 96px;
+
+      & + & {
+        margin-inline-start: -54px;
+      }
+    }
+  }
+
+  .who {
+    margin-block-start: 4px;
+    background: var(--cafe);
+    border-radius: 999px;
+    padding: 1px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    translate: 0 -30px;
+    scale: 1.15;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}

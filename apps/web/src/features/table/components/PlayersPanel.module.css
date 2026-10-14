@@ -1,0 +1,64 @@
+@layer components {
+  .heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .count {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    opacity: 0.7;
+  }
+
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    & li {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 0;
+      border-block-start: 1px dashed rgb(43 26 18 / 0.25);
+    }
+  }
+
+  .seat {
+    inline-size: 26px;
+    block-size: 26px;
+    border-radius: 50%;
+    background: var(--cafe);
+    color: var(--crema);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+  }
+
+  .me .seat {
+    background: var(--rosa);
+  }
+
+  .name {
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .kick {
+    margin-inline-start: auto;
+    border: 0;
+    background: none;
+    color: rgb(43 26 18 / 0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+
+    &:hover {
+      color: var(--danger);
+    }
+  }
+}

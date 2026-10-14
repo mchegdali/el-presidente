@@ -1,0 +1,21 @@
+@layer components {
+  .panel {
+    background: var(--crema);
+    color: var(--cafe);
+    border: 3px solid var(--cafe);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
+    padding: 18px;
+    position: relative;
+    --muted: rgb(43 26 18 / 0.65);
+
+    & :is(h2, h3) {
+      margin: 0 0 10px;
+    }
+  }
+
+  .narrow {
+    inline-size: 100%;
+    max-inline-size: 420px;
+  }
+}

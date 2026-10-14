@@ -1,0 +1,39 @@
+@layer components {
+  .field {
+    display: block;
+    margin: 12px 0;
+
+    & > span {
+      display: block;
+      font-weight: 700;
+      margin-block-end: 6px;
+    }
+  }
+
+  .input {
+    inline-size: 100%;
+    border: 2px solid var(--cafe);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 1.05rem;
+    background: #fffaf0;
+    color: var(--cafe);
+
+    &:focus {
+      outline: 3px solid var(--amarillo);
+      outline-offset: 1px;
+    }
+  }
+
+  .code {
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-family: var(--font-slab);
+    text-align: center;
+  }
+
+  .select {
+    inline-size: auto;
+    padding: 6px 10px;
+  }
+}

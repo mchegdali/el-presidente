@@ -1,0 +1,142 @@
+@layer components {
+  .chip {
+    position: relative;
+    background: rgb(255 244 220 / 0.06);
+    border: 2px solid rgb(255 244 220 / 0.18);
+    border-radius: 12px;
+    padding: 6px 10px;
+    min-inline-size: 96px;
+    opacity: 0.62;
+    transition:
+      border-color 0.2s,
+      background 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
+
+    @container table (width >= 760px) {
+      min-inline-size: 120px;
+    }
+  }
+
+  .me {
+    border-style: dashed;
+    border-color: rgb(242 183 5 / 0.6);
+
+    & .name {
+      color: var(--amarillo);
+    }
+  }
+
+  .turn {
+    opacity: 1;
+    border-style: solid;
+    border-color: var(--amarillo);
+    background: rgb(242 183 5 / 0.28);
+    transform: translateY(-3px) scale(1.06);
+    box-shadow:
+      0 0 0 3px rgb(242 183 5 / 0.45),
+      0 0 18px rgb(242 183 5 / 0.55);
+
+    &.me {
+      background: var(--amarillo);
+      color: var(--cafe);
+
+      & :is(.name, .thinking) {
+        color: var(--cafe);
+      }
+    }
+  }
+
+  .out {
+    opacity: 0.4;
+  }
+
+  .dim {
+    opacity: 0.45;
+  }
+
+  .away {
+    margin-inline-start: 4px;
+    font-size: 0.8rem;
+  }
+
+  .timer {
+    position: absolute;
+    inset-inline: 8px;
+    inset-block-end: 3px;
+    block-size: 3px;
+    border-radius: 2px;
+    background: rgb(43 26 18 / 0.35);
+    overflow: hidden;
+
+    & span {
+      display: block;
+      block-size: 100%;
+      background: var(--rosa);
+      transform-origin: left;
+      transition: transform 0.25s linear;
+    }
+  }
+
+  .name {
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-inline-size: 140px;
+  }
+
+  .role {
+    margin-inline-end: 4px;
+  }
+
+  .info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    margin-block-start: 2px;
+  }
+
+  .cards {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+  }
+
+  .back {
+    inline-size: 12px;
+    block-size: 17px;
+    border-radius: 2px;
+    background: var(--rosa);
+    border: 1.5px solid var(--crema);
+    display: inline-block;
+  }
+
+  .thinking {
+    color: var(--amarillo);
+    font-weight: 700;
+    animation: pulse 0.9s ease-in-out infinite alternate;
+  }
+
+  .pass {
+    background: rgb(255 244 220 / 0.18);
+    border-radius: 999px;
+    padding: 0 8px;
+    font-style: italic;
+  }
+
+  .outLabel {
+    font-weight: 700;
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}

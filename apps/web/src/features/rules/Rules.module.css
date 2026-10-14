@@ -1,0 +1,26 @@
+@layer components {
+  .rules {
+    background: var(--crema);
+    color: var(--cafe);
+    border: 3px solid var(--cafe);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
+    padding: 18px;
+    --muted: rgb(43 26 18 / 0.65);
+
+    & summary {
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+
+    & ul {
+      margin: 12px 0 0;
+      padding-inline-start: 20px;
+      line-height: 1.5;
+    }
+
+    & li + li {
+      margin-block-start: 4px;
+    }
+  }
+}

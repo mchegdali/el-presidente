@@ -18,7 +18,9 @@
       {
         "allow": ["_tag"]
       }
-    ]
+    ],
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "react/no-array-index-key": "off"
   },
   "ignorePatterns": [
     "supabase/**",
@@ -27,8 +29,9 @@
     "**/node_modules/**",
     "tests/**",
     "scripts/**",
-    "apps/web/app/**",
-    "apps/web/components/**",
-    "apps/web/lib/**"
+    "**/types/**",
+    "**/dist/**",
+    "apps/web/.next/**",
+    "apps/web/next-env.d.ts"
   ]
 }

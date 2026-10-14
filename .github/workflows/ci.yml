@@ -36,3 +36,35 @@ jobs:
       - run: bun run test
       - name: Build API binary
         run: bun run --filter '@el-presidente/api' build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    needs: check
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_DB: presidente
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 2s --health-timeout 2s --health-retries 20
+    env:
+      DATABASE_URL: postgres://app@localhost:5432/presidente
+      E2E_DATABASE_URL: postgres://app@localhost:5432/presidente
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd packages/db migrate
+      - run: bunx playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: bun run build
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4100
+      - run: bun run e2e
+        working-directory: apps/web
