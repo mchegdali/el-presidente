@@ -1,0 +1,34 @@
+# CX23 n°2 : Postgres en hot standby (réplication en streaming asynchrone depuis n°1) et
+# sauvegardes. Aucun port public (pare-feu Hetzner) ; écoute sur l'adresse privée.
+#
+# Initialisation (une fois) : ./init-standby.sh
+name: presidente-standby
+
+services:
+  postgres:
+    image: postgres:17.6-bookworm
+    restart: unless-stopped
+    network_mode: host
+    shm_size: 1g
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - listen_addresses=${PG_PRIVATE_IP}
+      # Lectures autorisées sur le standby (sauvegardes, vérifications).
+      - -c
+      - hot_standby=on
+      - -c
+      - hot_standby_feedback=on
+    volumes:
+      - /srv/presidente/pgdata:/var/lib/postgresql/data
+      - /srv/presidente/run/postgresql:/var/run/postgresql
+      - ../primary/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ../primary/certs/postgres:/etc/postgresql/certs:ro
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '/var/run/postgresql', '-U', 'postgres']
+      interval: 10s

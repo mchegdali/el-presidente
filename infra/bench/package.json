@@ -1,0 +1,18 @@
+{
+  "name": "@el-presidente/bench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bots": "bun run bots.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@el-presidente/game": "workspace:*"
+  },
+  "devDependencies": {
+    "@el-presidente/config": "workspace:*",
+    "@types/bun": "1.4.3",
+    "typescript": "5.9.3"
+  }
+}

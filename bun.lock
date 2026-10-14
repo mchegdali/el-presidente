@@ -58,6 +58,18 @@
         "vitest": "5.0.4",
       },
     },
+    "infra/bench": {
+      "name": "@el-presidente/bench",
+      "version": "1.0.0",
+      "dependencies": {
+        "@el-presidente/game": "workspace:*",
+      },
+      "devDependencies": {
+        "@el-presidente/config": "workspace:*",
+        "@types/bun": "1.4.3",
+        "typescript": "5.9.3",
+      },
+    },
     "packages/config": {
       "name": "@el-presidente/config",
       "version": "1.0.0",
@@ -120,6 +132,8 @@
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
     "@el-presidente/api": ["@el-presidente/api@workspace:apps/api"],
+
+    "@el-presidente/bench": ["@el-presidente/bench@workspace:infra/bench"],
 
     "@el-presidente/config": ["@el-presidente/config@workspace:packages/config"],
 

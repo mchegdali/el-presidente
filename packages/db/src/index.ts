@@ -10,7 +10,8 @@ export type * from './schema';
 /** Base Drizzle, quel que soit le pilote (postgres.js en production, PGlite en test). */
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-export const MIGRATIONS_FOLDER = new URL('../drizzle', import.meta.url).pathname;
+/** Dossier des migrations (surchargé dans l'image Docker, où le binaire est compilé). */
+export const MIGRATIONS_FOLDER = process.env.MIGRATIONS_DIR ?? new URL('../drizzle', import.meta.url).pathname;
 
 export interface DatabaseOptions {
   /**

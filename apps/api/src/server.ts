@@ -1,5 +1,6 @@
 // Assemblage du processus : dépendances, horloge, HTTP + WebSocket sur un même Bun.serve.
 
+import { chmodSync } from 'node:fs';
 import type { Database } from '@el-presidente/db';
 import { cryptoRng, type Rng } from '@el-presidente/game';
 import { createApp } from './app';
@@ -83,6 +84,9 @@ export async function startServer(options: ServerOptions) {
         // pour que ce ne soit jamais l'amont qui ferme une connexion qu'il croit réutilisable.
         Bun.serve<SocketContext>({ ...common, port: options.port ?? env.PORT, idleTimeout: 75 });
   hub.publisher = server;
+  // Socket Unix partagée avec HAProxy : l'accès est contrôlé par le dossier qui la contient
+  // (groupe commun aux deux conteneurs), la socket elle-même est ouverte au groupe.
+  if (env.LISTEN_UNIX !== undefined) chmodSync(env.LISTEN_UNIX, 0o660);
   await restoreDeadlines(deps);
 
   // Entretien : limiteurs, tables inactives, tables abandonnées depuis 2 jours.
