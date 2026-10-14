@@ -1,0 +1,24 @@
+{
+  "name": "@el-presidente/game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./protocol": "./src/protocol/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "bench": "bun run bench/engine.bench.ts"
+  },
+  "dependencies": {
+    "better-result": "3.0.1"
+  },
+  "devDependencies": {
+    "@el-presidente/config": "workspace:*",
+    "@types/bun": "1.4.3",
+    "mitata": "1.0.34",
+    "typescript": "5.9.3"
+  }
+}
