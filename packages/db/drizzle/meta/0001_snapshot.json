@@ -1,6 +1,6 @@
 {
-  "id": "17f5a4b8-15d5-466a-b92a-a075c6340fa9",
-  "prevId": "eb0efce9-7427-49f9-90fa-a1240b868779",
+  "id": "aaa132fa-c322-4bdb-9d7a-a169c21bd5ac",
+  "prevId": "f35887c5-482c-4022-9915-da92775daaee",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -679,7 +679,7 @@
       "checkConstraints": {
         "players_seat_check": {
           "name": "players_seat_check",
-          "value": "\"players\".\"seat\" between 0 and 7"
+          "value": "\"players\".\"seat\" >= 0"
         },
         "players_name_check": {
           "name": "players_name_check",

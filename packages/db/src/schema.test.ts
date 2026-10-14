@@ -60,8 +60,8 @@ describe('schéma (PGlite + migrations réelles)', () => {
   });
 
   test('réglages de stockage de la table des manches', async () => {
-    const r = await t.client.query<{ reloptions: string[] }>(`select reloptions from pg_class where relname = 'games'`);
-    expect(r.rows[0]!.reloptions).toContain('fillfactor=70');
+    const r = await t.query<{ reloptions: string[] }>(`select reloptions from pg_class where relname = 'games'`);
+    expect(r[0]!.reloptions).toContain('fillfactor=70');
     expect(await t.db.$count(games)).toBe(0);
   });
 

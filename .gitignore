@@ -151,3 +151,4 @@ vite.config.ts.timestamp-*
 # Next.js
 next-env.d.ts
 .vercel
+apps/api/dist

@@ -141,7 +141,7 @@ export const players = pgTable(
     unique('players_lobby_seat_key').on(t.lobbyId, t.seat),
     uniqueIndex('players_lobby_name_key').on(t.lobbyId, sql`lower(${t.name})`),
     index('players_user_id_idx').on(t.userId),
-    check('players_seat_check', sql`${t.seat} between 0 and 7`),
+    check('players_seat_check', sql`${t.seat} >= 0`),
     check('players_name_check', sql`length(${t.name}) between 1 and 20`),
     check(
       'players_role_check',

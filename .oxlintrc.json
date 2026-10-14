@@ -12,7 +12,13 @@
     "unicorn/no-array-sort": "off",
     "typescript/no-explicit-any": "error",
     "eqeqeq": ["error", "smart"],
-    "no-await-in-loop": "off"
+    "no-await-in-loop": "off",
+    "no-underscore-dangle": [
+      "warn",
+      {
+        "allow": ["_tag"]
+      }
+    ]
   },
   "ignorePatterns": [
     "supabase/**",

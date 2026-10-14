@@ -68,7 +68,7 @@ CREATE TABLE "players" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "players_lobby_id_user_id_pk" PRIMARY KEY("lobby_id","user_id"),
 	CONSTRAINT "players_lobby_seat_key" UNIQUE("lobby_id","seat"),
-	CONSTRAINT "players_seat_check" CHECK ("players"."seat" between 0 and 7),
+	CONSTRAINT "players_seat_check" CHECK ("players"."seat" >= 0),
 	CONSTRAINT "players_name_check" CHECK (length("players"."name") between 1 and 20),
 	CONSTRAINT "players_role_check" CHECK ("players"."role" is null or "players"."role" in ('president', 'vice_president', 'neutral', 'vice_trou', 'trou'))
 );

@@ -21,12 +21,27 @@ export interface DatabaseOptions {
 }
 
 /**
- * Connexion de production : socket Unix ou TCP selon l'URL
- * (`postgres://app@/presidente?host=/var/run/postgresql`). Requêtes préparées actives :
+ * URL Postgres → options postgres.js. Une socket Unix s'écrit comme pour libpq :
+ * `postgres://app@localhost/presidente?host=/var/run/postgresql` ; postgres.js attend
+ * alors le chemin complet du fichier de socket dans `path`.
+ */
+export function connectionOptions(url: string): { url: string; path?: string } {
+  const parsed = new URL(url);
+  const host = parsed.searchParams.get('host');
+  if (host === null || !host.startsWith('/')) return { url };
+  parsed.searchParams.delete('host');
+  const port = parsed.port || '5432';
+  return { url: parsed.toString(), path: `${host.replace(/\/$/, '')}/.s.PGSQL.${port}` };
+}
+
+/**
+ * Connexion de production : socket Unix ou TCP selon l'URL. Requêtes préparées actives :
  * pas de pooler en mode transaction devant Postgres.
  */
 export function createDatabase(url: string, options: DatabaseOptions = {}) {
-  const client = postgres(url, {
+  const conn = connectionOptions(url);
+  const client = postgres(conn.url, {
+    ...(conn.path === undefined ? {} : { path: conn.path }),
     max: options.max ?? 2,
     prepare: true,
     idle_timeout: 0,
@@ -39,10 +54,18 @@ export function createDatabase(url: string, options: DatabaseOptions = {}) {
 
 /** Applique les migrations (au déploiement, avant le démarrage de l'API). */
 export async function runMigrations(url: string): Promise<void> {
-  const client = postgres(url, { max: 1, onnotice: () => {} });
+  const conn = connectionOptions(url);
+  const client = postgres(conn.url, {
+    max: 1,
+    onnotice: () => {},
+    ...(conn.path === undefined ? {} : { path: conn.path }),
+  });
   try {
     await migrate(drizzle(client), { migrationsFolder: MIGRATIONS_FOLDER });
   } finally {
     await client.end({ timeout: 5 });
   }
 }
+
+// Opérateurs Drizzle ré-exportés : une seule copie de drizzle-orm dans le monorepo.
+export { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, max, or, sql } from 'drizzle-orm';
