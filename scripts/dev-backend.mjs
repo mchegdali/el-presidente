@@ -23,6 +23,11 @@ function send(res, status, body) {
 // Les appels sont sérialisés, comme les verrous de ligne le feraient en vrai.
 let queue = Promise.resolve();
 
+// Comme la tâche pg_cron en production : délais dépassés appliqués côté serveur.
+setInterval(() => {
+  queue = queue.then(() => db.query('select private.sweep()')).catch(() => {});
+}, 5000);
+
 createServer((req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204);
   const match = req.url?.match(/^\/rest\/v1\/rpc\/([a-z_]+)/);

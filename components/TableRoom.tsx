@@ -1,9 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { syncPush } from '@/lib/push';
+import { UNKNOWN_TABLE_URL } from '@/lib/routes';
 import { useTable } from '@/lib/useTable';
+import { mentions } from './Chat';
 import { PapelPicado } from './Decor';
 import GameView from './GameView';
 import JoinForm from './JoinForm';
@@ -18,7 +20,30 @@ export type TableApi = ReturnType<typeof useTable> & {
 export default function TableRoom({ code }: { code: string }) {
   const table = useTable(code);
   const router = useRouter();
-  const { state, loadError, act } = table;
+  const { state, loadError, act, messages } = table;
+  const notFound = loadError?.hint === 'not_found';
+
+  useEffect(() => {
+    if (notFound) router.replace(UNKNOWN_TABLE_URL);
+  }, [notFound, router]);
+
+  // Le navigateur déjà abonné aux notifications est associé au joueur de cette table.
+  const me = state?.me;
+  useEffect(() => {
+    if (me) syncPush(code).catch(() => {});
+  }, [code, me]);
+
+  // @mention : vibration à l'arrivée d'un message qui me mentionne.
+  const myName = state?.players.find((p) => p.id === me)?.name;
+  const seen = useRef<number | null>(null);
+  useEffect(() => {
+    const last = messages.at(-1)?.id ?? 0;
+    if (seen.current !== null && myName) {
+      const fresh = messages.filter((m) => m.id > (seen.current ?? 0) && m.p !== me);
+      if (fresh.some((m) => mentions(m.body, myName))) navigator.vibrate?.([60, 40, 60]);
+    }
+    seen.current = last;
+  }, [messages, me, myName]);
 
   const leave = useCallback(async () => {
     const inRound = state?.lobby.status === 'playing' || state?.lobby.status === 'exchange';
@@ -43,16 +68,13 @@ export default function TableRoom({ code }: { code: string }) {
       <>
         <PapelPicado />
         <main className="page centered">
-          {loadError ? (
+          {loadError && !notFound ? (
             <div className="panel narrow">
-              <h1 className="title-rye">{loadError.hint === 'not_found' ? '¡Ay, caramba!' : 'Oups'}</h1>
+              <h1 className="title-rye">Oups</h1>
               <p>{loadError.message}</p>
-              {loadError.hint === 'not_found' && (
-                <p className="muted">Les tables inactives depuis deux jours sont supprimées.</p>
-              )}
-              <Link href="/" className="btn btn--block">
-                Retour à l&apos;accueil
-              </Link>
+              <button type="button" className="btn btn--block" onClick={() => table.refresh()}>
+                Réessayer
+              </button>
             </div>
           ) : (
             <p className="loading title-rye">Barajando las cartas…</p>

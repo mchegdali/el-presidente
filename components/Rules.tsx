@@ -16,7 +16,7 @@ export default function Rules({ open = false }: { open?: boolean }) {
         <li>On suit avec une valeur égale ou supérieure, ou on passe. On peut passer puis revenir dans le même pli.</li>
         <li>
           <strong>Carte ou rien</strong> : en simples, quand deux cartes de même valeur se suivent (7 puis 7), le
-          suivant doit jouer un 7 ou passer.
+          suivant doit jouer un 7 ou passer. S&apos;il passe, le joueur d&apos;après n&apos;est plus contraint (7 ou plus).
         </li>
         <li>Quand tout le monde passe, le dernier à avoir joué relance.</li>
         <li>
@@ -25,6 +25,10 @@ export default function Rules({ open = false }: { open?: boolean }) {
         <li>
           <strong>Coupe à 4</strong> : dès que les 4 cartes d&apos;une valeur sont sur le pli (7, 7, 7, 7 ou 7-7 puis
           7-7), le pli est coupé et celui qui a complété la série relance. Un carré posé en ouverture coupe aussitôt.
+        </li>
+        <li>
+          <strong>Passe automatique</strong> (si l&apos;hôte l&apos;active) : délai dépassé, le joueur passe ; s&apos;il
+          ouvre le pli, sa plus petite carte est jouée.
         </li>
         <li>Le premier à se débarrasser de ses cartes est Président, le dernier Trou-du-cul.</li>
         <li>

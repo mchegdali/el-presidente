@@ -4,7 +4,9 @@ import type { TableState } from '@/lib/types';
 import { PapelPicado } from './Decor';
 import InvitePanel from './InvitePanel';
 import PlayersPanel from './PlayersPanel';
+import Chat from './Chat';
 import Rules from './Rules';
+import { PushToggle, TurnLimitSetting } from './TableSettings';
 import TopBar from './TopBar';
 import type { TableApi } from './TableRoom';
 
@@ -28,6 +30,11 @@ export default function Lobby({ state, table }: { state: TableState; table: Tabl
           <InvitePanel code={state.lobby.code} />
           <PlayersPanel state={state} busy={table.busy} onKick={table.kick} />
         </div>
+        <div className="lobby__settings panel">
+          <TurnLimitSetting state={state} table={table} />
+          <PushToggle code={state.lobby.code} />
+        </div>
+        <Chat state={state} table={table} />
         <div className="lobby__start">
           {isHost ? (
             <>

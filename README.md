@@ -14,7 +14,8 @@ entre son nom et c'est parti.
   garde ce format. On suit avec une valeur **égale ou supérieure**, ou on passe (on peut
   revenir dans le même pli après avoir passé).
 - **Carte ou rien** : en simples, quand deux cartes de même valeur se suivent (7 puis 7),
-  le suivant doit jouer cette valeur ou passer.
+  le suivant doit jouer cette valeur ou passer. S'il passe, le joueur d'après n'est plus
+  contraint.
 - Tout le monde passe : le dernier à avoir joué relance.
 - **Le 2 ferme le pli.**
 - **Coupe à 4** : dès que les 4 cartes d'une valeur sont sur le pli (7, 7, 7, 7 ou 7-7 puis
@@ -26,6 +27,22 @@ entre son nom et c'est parti.
   Président, qui lui en rend 2 de son choix ; idem avec 1 carte entre Vice-Trou-du-cul et
   Vice-Président. Le Trou-du-cul commence ; à la 1re manche, c'est celui qui a la Dame de
   cœur.
+
+## À la table
+
+- **Ordre de jeu** : la bande au-dessus du tapis montre tous les joueurs, vous compris,
+  dans l'ordre du tour ; 💤 signale un joueur dont la page est fermée ou en arrière-plan.
+- **Chat** dans le salon et pendant la partie (bouton 💬), avec émoticônes et `@mentions`
+  (autocomplétion ; la personne mentionnée est mise en évidence et son téléphone vibre).
+- **Emotes rapides** : une bulle s'affiche quelques secondes au-dessus de votre nom.
+- **Passe automatique** : l'hôte règle un délai par tour (15 s à 2 min) ou la désactive.
+  Délai dépassé : le joueur passe ; s'il ouvre le pli, sa plus petite carte est jouée ;
+  pendant l'échange, ses cartes les plus faibles sont données.
+- **Notifications push** : « 🔔 Me prévenir quand c'est mon tour ». Si votre page n'est
+  pas au premier plan quand vient votre tour (ou quand on vous @mentionne), vous recevez
+  une notification. Sur iPhone, il faut d'abord ajouter le site à l'écran d'accueil.
+- Une table inexistante ou fermée renvoie à l'accueil avec le seul message « Cette table
+  n'existe pas. ».
 
 ## Architecture
 
@@ -48,6 +65,14 @@ scripts/             backend local pour développer sans Supabase
   (`realtime.send`) ; les clients relisent alors leur état. Une relecture périodique sert
   de filet de sécurité.
 - Les tables inactives depuis 2 jours sont supprimées à la création d'une nouvelle table.
+- Chat, abonnements push et file de notifications sont dans le schéma `private`, jamais
+  exposé par l'API. Chaque onglet visible envoie un signe de vie (`ping`) toutes les 15 s,
+  et signale son passage en arrière-plan. Quand c'est au tour d'un joueur absent, la base
+  met une notification en file et réveille l'Edge Function `supabase/functions/push`
+  (pg_net), qui l'envoie en Web Push.
+- La passe automatique est vérifiée par le serveur : les clients la demandent quand le
+  chrono affiché tombe à zéro (`claim_timeout`), et une tâche pg_cron (toutes les 5 s)
+  l'applique même si plus personne n'a la page ouverte.
 
 ## Développement
 
@@ -67,7 +92,15 @@ différentes (chaque fenêtre a son propre jeton).
 ## Déploiement
 
 1. **Supabase** : appliquer les fichiers de `supabase/migrations/` dans l'ordre (SQL Editor
-   ou `supabase db push`).
+   ou `supabase db push`), déployer l'Edge Function `push` (sans vérification JWT), puis
+   renseigner la configuration des notifications (clés VAPID générées pour le projet,
+   jamais commitées) :
+   ```sql
+   insert into private.config (key, value) values
+     ('vapid_public', '<clé publique>'), ('vapid_private', '<clé privée>'),
+     ('vapid_subject', 'https://<votre-domaine>'),
+     ('push_url', 'https://<projet>.supabase.co/functions/v1/push');
+   ```
 2. **Vercel** : projet relié à ce dépôt, avec les variables d'environnement
    `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (voir
    `.env.example`). La branche `main` est déployée en production.

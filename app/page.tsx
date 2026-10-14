@@ -18,6 +18,15 @@ export default function Home() {
 
   useEffect(() => setName(getSavedName()), []);
 
+  // Arrivée depuis une table inexistante ou fermée : un seul message, sans détail.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('table') === 'inconnue') {
+      setError("Cette table n'existe pas.");
+      window.history.replaceState(null, '', '/');
+    }
+  }, []);
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -35,7 +44,7 @@ export default function Home() {
   const join = (e: React.FormEvent) => {
     e.preventDefault();
     const c = code.trim().toUpperCase();
-    if (c.length < 4) {
+    if (c.length !== 5) {
       setError('Entrez le code de la table (5 caractères).');
       return;
     }

@@ -9,6 +9,10 @@ export interface Player {
   role: Role | null;
   cards: number;
   position: number | null;
+  /** Onglet ouvert et visible récemment. */
+  online: boolean;
+  emote: string | null;
+  emote_at: number | null;
 }
 
 export type TrickEntry = { p: string; c: string[]; pass?: undefined } | { p: string; pass: true; c?: undefined };
@@ -29,7 +33,8 @@ export type GameEventType =
   | 'two'
   | 'won'
   | 'finished'
-  | 'round_over';
+  | 'round_over'
+  | 'timeout';
 
 export interface GameEvent {
   seq: number;
@@ -38,6 +43,8 @@ export interface GameEvent {
   position?: number;
   /** round_start : pourquoi ce joueur commence. */
   reason?: 'queen' | 'trou';
+  /** timeout : coup joué automatiquement. */
+  action?: 'pass' | 'play' | 'give';
 }
 
 export interface Game {
@@ -45,6 +52,8 @@ export interface Game {
   round_no: number;
   seats: string[];
   turn: string | null;
+  /** Début du tour en cours (ms, horloge serveur). */
+  turn_started: number;
   trick: TrickEntry[];
   trick_size: number;
   trick_rank: number;
@@ -65,12 +74,26 @@ export interface Lobby {
   version: number;
   host_id: string | null;
   notice: string | null;
+  /** Délai par tour en secondes ; null = pas de passe automatique. */
+  turn_limit: number | null;
+  /** Dernier message du chat (membres seulement). */
+  chat_last: number | null;
 }
 
 export interface TableState {
   lobby: Lobby;
   me: string | null;
+  /** Heure du serveur (ms) au moment de la lecture. */
+  now: number;
   players: Player[];
   game: Game | null;
   hand: string[] | null;
+}
+
+export interface ChatMessage {
+  id: number;
+  p: string | null;
+  name: string;
+  body: string;
+  at: number;
 }

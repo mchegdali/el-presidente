@@ -9,11 +9,13 @@ type Props = {
   onToggle?: (card: string) => void;
   /** Cartes mises en valeur ; les autres sont assombries. */
   playable?: Set<string> | null;
+  /** C'est au joueur d'agir : les cartes jouables sont mises en avant. */
+  active?: boolean;
 };
 
 // Dispose la main en éventail sur une ou plusieurs rangées selon la largeur
 // disponible, en gardant l'index (valeur + couleur) de chaque carte visible.
-export default function Hand({ cards, selected, onToggle, playable }: Props) {
+export default function Hand({ cards, selected, onToggle, playable, active = false }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -39,7 +41,7 @@ export default function Hand({ cards, selected, onToggle, playable }: Props) {
   const rowOverlap = cardH * 0.42;
 
   return (
-    <div className="hand" ref={ref} style={{ paddingTop: cardH * 0.25 }}>
+    <div className={`hand ${active ? 'hand--active' : 'hand--idle'}`} ref={ref} style={{ paddingTop: cardH * 0.25 }}>
       {width > 0 &&
         rows.map((row, r) => {
           const step = row.length > 1 ? Math.min(maxStep, (width - cardW) / (row.length - 1)) : 0;
@@ -58,7 +60,7 @@ export default function Hand({ cards, selected, onToggle, playable }: Props) {
                   selected={selected.has(card)}
                   dimmed={playable ? !playable.has(card) : false}
                   onClick={onToggle ? () => onToggle(card) : undefined}
-                  className="hand__card"
+                  className={`hand__card ${active && (!playable || playable.has(card)) ? 'hand__card--playable' : ''}`}
                   style={{ left: left + i * step, width: cardW, zIndex: i }}
                 />
               ))}

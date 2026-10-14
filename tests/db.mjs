@@ -31,14 +31,22 @@ export const RPC_ARGS = {
   leave_lobby: ['p_code', 'p_token'],
   kick_player: ['p_code', 'p_token', 'p_player'],
   cancel_round: ['p_code', 'p_token'],
+  claim_timeout: ['p_code', 'p_token'],
+  set_turn_limit: ['p_code', 'p_token', 'p_seconds'],
+  ping: ['p_code', 'p_token', 'p_active'],
+  save_push: ['p_code', 'p_token', 'p_endpoint', 'p_p256dh', 'p_auth'],
+  push_public_key: [],
+  get_messages: ['p_code', 'p_token', 'p_after'],
+  send_message: ['p_code', 'p_token', 'p_body'],
+  send_emote: ['p_code', 'p_token', 'p_emote'],
 };
 
-const ARG_CASTS = { p_cards: '::text[]', p_player: '::uuid' };
+const ARG_CASTS = { p_cards: '::text[]', p_player: '::uuid', p_seconds: '::integer', p_active: '::boolean', p_after: '::bigint' };
 
 export async function createDb() {
   const db = new PGlite();
   await db.exec(SUPABASE_STUBS);
-  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort()) {
+  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith('.sql') && !f.includes('supabase_only')).sort()) {
     await db.exec(readFileSync(join(migrationsDir, file), 'utf8'));
   }
   return db;

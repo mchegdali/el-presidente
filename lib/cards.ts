@@ -69,15 +69,15 @@ export const FORMAT_LABELS: Record<number, string> = {
 };
 
 /**
- * Carte ou rien : en simples, si les deux dernières cartes posées ont la même
- * valeur, seule cette valeur peut suivre. Retourne la valeur imposée, sinon null.
+ * Carte ou rien : en simples, si les deux dernières actions du pli sont deux cartes
+ * de même valeur, le joueur suivant ne peut jouer que cette valeur (ou passer).
+ * Une passe lève la contrainte. Retourne la valeur imposée, sinon null.
  */
 export function forcedRank(trick: TrickEntry[], trickSize: number): number | null {
-  if (trickSize !== 1) return null;
-  const plays = trick.filter((t) => t.c);
-  if (plays.length < 2) return null;
-  const [a, b] = plays.slice(-2).map((t) => rankOf(t.c![0]));
-  return a === b ? a : null;
+  if (trickSize !== 1 || trick.length < 2) return null;
+  const [prev, last] = trick.slice(-2);
+  if (!prev.c || !last.c) return null; // une passe lève la contrainte
+  return rankOf(prev.c[0]) === rankOf(last.c[0]) ? rankOf(last.c[0]) : null;
 }
 
 /**

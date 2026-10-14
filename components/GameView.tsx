@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FORMAT_LABELS,
   forcedRank,
@@ -12,7 +12,10 @@ import {
 } from '@/lib/cards';
 import { ordinal, ROLE_INFO } from '@/lib/roles';
 import type { Game, GameEvent, Player, TableState, TrickEntry } from '@/lib/types';
+import type { LiveEmote } from '@/lib/useTable';
 import { Card } from './Card';
+import Chat, { useUnread } from './Chat';
+import { EmoteBar, EmoteBubble } from './Emotes';
 import EventBanner from './EventBanner';
 import Hand from './Hand';
 import TopBar from './TopBar';
@@ -26,6 +29,7 @@ export default function GameView({ state, table }: { state: TableState; table: T
   const nameOf = (id: string | null | undefined) => (id && players.get(id)?.name) || '?';
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [chatOpen, setChatOpen] = useState(false);
   const myTurn = game.phase === 'playing' && game.turn === me;
 
   // Les cartes sélectionnées qui ont quitté la main sont oubliées.
@@ -36,21 +40,42 @@ export default function GameView({ state, table }: { state: TableState; table: T
     });
   }, [hand]);
 
+  // Échange : est-ce à moi de donner des cartes ?
+  const myGive = game.phase === 'exchange' ? game.exchanges.find((e) => e.from === me && !e.done) : undefined;
+  const mustAct = myTurn || !!myGive;
+
   // Notification discrète quand c'est à moi.
   const wasMyTurn = useRef(false);
   useEffect(() => {
-    if (myTurn && !wasMyTurn.current) {
+    if (mustAct && !wasMyTurn.current) {
       if ('vibrate' in navigator) navigator.vibrate?.(80);
     }
-    wasMyTurn.current = myTurn;
-    document.title = myTurn ? '🔔 À vous ! — El Presidente' : 'El Presidente';
+    wasMyTurn.current = mustAct;
+    document.title = mustAct ? '🔔 À vous ! — El Presidente' : 'El Presidente';
     return () => {
       document.title = 'El Presidente';
     };
-  }, [myTurn]);
+  }, [mustAct]);
 
-  // Échange : est-ce à moi de donner des cartes ?
-  const myGive = game.phase === 'exchange' ? game.exchanges.find((e) => e.from === me && !e.done) : undefined;
+  // Délai par tour : chrono affiché à tous ; à zéro, on demande au serveur
+  // d'appliquer la passe automatique (il vérifie lui-même le délai).
+  const limit = state.lobby.turn_limit;
+  const timed = !!limit && (game.phase === 'playing' || game.phase === 'exchange');
+  const deadline = timed ? game.turn_started + (limit as number) * 1000 : null;
+  const remaining = useCountdown(deadline, table.serverNow);
+  const expired = remaining === 0;
+  const { claimTimeout } = table;
+  useEffect(() => {
+    if (!expired) return;
+    const first = setTimeout(claimTimeout, 200 + Math.random() * 800);
+    const retry = setInterval(claimTimeout, 3000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(retry);
+    };
+  }, [expired, game.turn_started, claimTimeout]);
+  const clock: Clock | null =
+    remaining === null || !limit ? null : { seconds: Math.ceil(remaining / 1000), fraction: remaining / (limit * 1000) };
 
   const toggle = (card: string) => {
     table.setActionError(null);
@@ -95,24 +120,42 @@ export default function GameView({ state, table }: { state: TableState; table: T
     if (await table.act('give_cards', { p_cards: selection })) setSelected(new Set());
   };
 
+  // Tous les joueurs dans l'ordre du tour, moi compris, pour savoir où l'on se situe.
   const seatOrder = game.seats.filter((id) => players.has(id));
-  const meIdx = seatOrder.indexOf(me);
-  const opponents = [...seatOrder.slice(meIdx + 1), ...seatOrder.slice(0, Math.max(meIdx, 0))]
-    .map((id) => players.get(id))
-    .filter((p): p is Player => !!p);
   const myPlayer = players.get(me);
+  const pendingGivers = new Set(game.exchanges.filter((e) => !e.done).map((e) => e.from));
+  const myName = myPlayer?.name;
+  const unread = useUnread(table.messages, me, myName, chatOpen);
 
   return (
-    <main className="page game">
+    <main className={`page game ${mustAct ? 'game--myturn' : ''}`}>
       <TopBar state={state} table={table} title={`Manche ${game.round_no}`} />
 
-      <section className="opponents" aria-label="Adversaires">
-        {opponents.map((p) => (
-          <OpponentChip key={p.id} player={p} game={game} />
-        ))}
+      <section className="opponents" aria-label="Ordre de jeu">
+        {seatOrder.map((id, i) => {
+          const p = players.get(id) as Player;
+          const acting = game.phase === 'playing' ? game.turn === id : pendingGivers.has(id);
+          return (
+            <Fragment key={id}>
+              {i > 0 && (
+                <span className="opponents__arrow" aria-hidden="true">
+                  ›
+                </span>
+              )}
+              <OpponentChip
+                player={p}
+                game={game}
+                isMe={id === me}
+                acting={acting}
+                clock={acting ? clock : null}
+                emote={table.emotes[id]}
+              />
+            </Fragment>
+          );
+        })}
       </section>
 
-      <section className="felt-frame">
+      <section className={`felt-frame ${mustAct ? 'felt-frame--myturn' : ''}`}>
         <div className="felt">
           <TrickArea game={game} nameOf={nameOf} />
           <EventBanner events={game.events} nameOf={nameOf} roundNo={game.round_no} />
@@ -121,9 +164,14 @@ export default function GameView({ state, table }: { state: TableState; table: T
 
       {game.phase === 'exchange' && <ExchangePanel game={game} me={me} nameOf={nameOf} />}
 
-      <section className={`me ${myTurn ? 'me--turn' : ''}`}>
+      <section className={`me ${mustAct ? 'me--turn' : 'me--idle'}`}>
+        {mustAct && clock && (
+          <div className={`me__timer ${clock.seconds <= 10 ? 'me__timer--urgent' : ''}`} aria-hidden="true">
+            <span style={{ transform: `scaleX(${clock.fraction})` }} />
+          </div>
+        )}
         <div className="me__status">
-          <StatusLine game={game} me={me} myPlayer={myPlayer} nameOf={nameOf} />
+          <StatusLine game={game} me={me} myPlayer={myPlayer} nameOf={nameOf} clock={mustAct ? clock : null} />
         </div>
         {table.actionError && (
           <p className="error" role="alert">
@@ -133,8 +181,9 @@ export default function GameView({ state, table }: { state: TableState; table: T
         <Hand
           cards={hand}
           selected={selected}
-          onToggle={myTurn || myGive ? toggle : undefined}
+          onToggle={mustAct ? toggle : undefined}
           playable={myGive ? null : playable}
+          active={mustAct}
         />
         <div className="me__actions">
           {myGive && (
@@ -163,26 +212,81 @@ export default function GameView({ state, table }: { state: TableState; table: T
             </>
           )}
         </div>
+        <EmoteBar onSend={table.sendEmote}>
+          <button
+            type="button"
+            className={`chat-fab ${unread.mentioned ? 'chat-fab--ping' : ''}`}
+            onClick={() => setChatOpen(true)}
+            aria-label={`Ouvrir le chat${unread.count ? ` (${unread.count} non lus)` : ''}`}
+          >
+            💬 Chat
+            {unread.count > 0 && <span className="chat-fab__badge">{unread.mentioned ? '@' : unread.count}</span>}
+          </button>
+        </EmoteBar>
       </section>
+
+      {chatOpen && (
+        <div className="chat-drawer" role="dialog" aria-label="Chat" onClick={() => setChatOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Chat state={state} table={table} onClose={() => setChatOpen(false)} className="chat--drawer" />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
 
-function OpponentChip({ player, game }: { player: Player; game: Game }) {
-  const turn = game.phase === 'playing' && game.turn === player.id;
+type Clock = { seconds: number; fraction: number };
+
+/** Temps restant (ms) avant l'échéance, selon l'horloge du serveur ; null sans échéance. */
+function useCountdown(deadline: number | null, serverNow: () => number) {
+  const [now, setNow] = useState(() => serverNow());
+  useEffect(() => {
+    if (deadline === null) return;
+    setNow(serverNow());
+    const timer = setInterval(() => setNow(serverNow()), 250);
+    return () => clearInterval(timer);
+  }, [deadline, serverNow]);
+  return deadline === null ? null : Math.max(0, deadline - now);
+}
+
+function OpponentChip({
+  player,
+  game,
+  isMe,
+  acting,
+  clock,
+  emote,
+}: {
+  player: Player;
+  game: Game;
+  isMe: boolean;
+  acting: boolean;
+  clock: Clock | null;
+  emote?: LiveEmote;
+}) {
   const position = game.finished.indexOf(player.id) + 1;
   const lastAction = [...game.trick].reverse().find((t) => t.p === player.id);
   const passed = !!lastAction?.pass;
   const role = player.role ? ROLE_INFO[player.role] : null;
   return (
-    <div className={`chip ${turn ? 'chip--turn' : ''} ${position ? 'chip--out' : ''}`}>
+    <div
+      className={`chip ${acting ? 'chip--turn' : ''} ${position ? 'chip--out' : ''} ${isMe ? 'chip--me' : ''}`}
+      aria-current={acting ? 'true' : undefined}
+    >
+      <EmoteBubble emote={emote} />
       <div className="chip__name">
         {role && (
           <span className="chip__role" title={role.fr}>
             {role.icon}
           </span>
         )}
-        {player.name}
+        {isMe ? 'Vous' : player.name}
+        {!isMe && !player.online && (
+          <span className="chip__away" title="Absent : page fermée ou en arrière-plan">
+            💤
+          </span>
+        )}
       </div>
       <div className="chip__info">
         {position ? (
@@ -192,9 +296,14 @@ function OpponentChip({ player, game }: { player: Player; game: Game }) {
             <span className="chip__back" aria-hidden="true" />×{player.cards}
           </span>
         )}
-        {turn && <span className="chip__thinking">joue…</span>}
-        {!turn && passed && <span className="chip__pass">passe</span>}
+        {acting && <span className="chip__thinking">{clock ? `${clock.seconds} s` : isMe ? 'à vous !' : 'joue…'}</span>}
+        {!acting && passed && <span className="chip__pass">passe</span>}
       </div>
+      {clock && (
+        <span className="chip__timer" aria-hidden="true">
+          <span style={{ transform: `scaleX(${clock.fraction})` }} />
+        </span>
+      )}
     </div>
   );
 }
@@ -266,11 +375,13 @@ function StatusLine({
   me,
   myPlayer,
   nameOf,
+  clock,
 }: {
   game: Game;
   me: string;
   myPlayer?: Player;
   nameOf: (id: string) => string;
+  clock: Clock | null;
 }) {
   const role = myPlayer?.role ? ROLE_INFO[myPlayer.role] : null;
   const forced = forcedRank(game.trick, game.trick_size);
@@ -300,6 +411,11 @@ function StatusLine({
         {myPlayer?.name}
       </span>
       <span className="me__text">{text}</span>
+      {clock && (
+        <span className={`me__clock ${clock.seconds <= 10 ? 'me__clock--urgent' : ''}`}>
+          ⏱ {clock.seconds} s
+        </span>
+      )}
     </>
   );
 }

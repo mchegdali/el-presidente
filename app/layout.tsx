@@ -7,6 +7,7 @@ import CardDefs from '@/components/CardDefs';
 export const metadata: Metadata = {
   title: 'El Presidente — le jeu du Président',
   description: 'Jouez au Président entre amis, en temps réel, depuis vos téléphones. ¡Viva El Presidente!',
+  appleWebApp: { capable: true, title: 'El Presidente', statusBarStyle: 'black-translucent' },
 };
 
 export const viewport: Viewport = {

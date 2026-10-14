@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { TableState } from '@/lib/types';
+import { PushToggle, TurnLimitSetting } from './TableSettings';
 import type { TableApi } from './TableRoom';
 
 export default function TopBar({ state, table, title }: { state: TableState; table: TableApi; title?: string }) {
@@ -39,6 +40,12 @@ export default function TopBar({ state, table, title }: { state: TableState; tab
           </button>
           {menu && (
             <div className="menu__list" role="menu">
+              {inRound && (
+                <div className="menu__settings">
+                  <TurnLimitSetting state={state} table={table} />
+                  <PushToggle code={state.lobby.code} compact />
+                </div>
+              )}
               {isHost && inRound && (
                 <button type="button" role="menuitem" onClick={cancelRound}>
                   Annuler la manche

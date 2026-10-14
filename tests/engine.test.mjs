@@ -43,13 +43,13 @@ async function forceRound(db, t, hands, turn) {
   await db.query(`update public.lobbies set status = 'playing' where code = $1`, [t.code]);
 }
 
-// Carte ou rien : en simples, deux cartes de même valeur de suite imposent cette valeur.
+// Carte ou rien : en simples, deux cartes de même valeur de suite imposent cette valeur
+// au joueur suivant ; une passe lève la contrainte.
 function forcedRank(trick, trickSize) {
-  if (trickSize !== 1) return null;
-  const plays = trick.filter((t) => t.c);
-  if (plays.length < 2) return null;
-  const [a, b] = plays.slice(-2).map((t) => rank(t.c[0]));
-  return a === b ? a : null;
+  if (trickSize !== 1 || trick.length < 2) return null;
+  const [prev, last] = trick.slice(-2);
+  if (!prev.c || !last.c) return null;
+  return rank(prev.c[0]) === rank(last.c[0]) ? rank(last.c[0]) : null;
 }
 
 function legalPlays(hand, trickSize, trickRank, forced = null) {
@@ -289,21 +289,44 @@ describe('règles', () => {
     );
   });
 
-  test('carte ou rien : après deux simples de même valeur, il faut suivre cette valeur ou passer', async () => {
+  test('carte ou rien : après deux simples de même valeur, le suivant doit suivre cette valeur ou passer', async () => {
     const db = await createDb();
     const t = await setupTable(db, 4);
     await forceRound(db, t, [['7S', '3S'], ['7H', '4S'], ['9D', '7D', '5S'], ['KC', '6S']], 0);
     await play(db, t, t.ids[0], ['7S']);
-    let s = await play(db, t, t.ids[1], ['7H']);
+    await play(db, t, t.ids[1], ['7H']);
     await rejects(play(db, t, t.ids[2], ['9D']), /7 ou rien/);
-    s = await pass(db, t, t.ids[2]);
-    // Le joueur suivant est aussi contraint, même après une passe.
-    await rejects(play(db, t, t.ids[3], ['KC']), /7 ou rien/);
-    s = await pass(db, t, t.ids[3]);
+    const s = await pass(db, t, t.ids[2]);
+    assert.equal(s.game.turn, t.ids[3]);
+  });
+
+  test('carte ou rien, exemple 1 : J1 7, J2 7, J3 passe → J1 peut jouer 7 ou plus et la partie continue', async () => {
+    const db = await createDb();
+    const t = await setupTable(db, 3);
+    await forceRound(db, t, [['7S', '9C', '3S'], ['7H', 'JD', '4S'], ['7D', '5S']], 0);
+    await play(db, t, t.ids[0], ['7S']);
+    await play(db, t, t.ids[1], ['7H']);
+    let s = await pass(db, t, t.ids[2]);
     assert.equal(s.game.turn, t.ids[0]);
-    s = await pass(db, t, t.ids[0]);
-    assert.equal(s.game.events.at(-1).type, 'won', 'les trois autres ont passé : B remporte le pli');
-    assert.equal(s.game.turn, t.ids[1]);
+    s = await play(db, t, t.ids[0], ['9C']); // plus de contrainte après la passe
+    assert.equal(s.game.trick_rank, rank('9C'));
+    assert.equal(s.game.turn, t.ids[1], 'le pli continue');
+    s = await play(db, t, t.ids[1], ['JD']);
+    assert.equal(s.game.turn, t.ids[2]);
+  });
+
+  test('carte ou rien, exemple 2 : J1 7, J2 7, J3 7 → J1 joue le 4e 7 et remporte le pli (coupe à 4)', async () => {
+    const db = await createDb();
+    const t = await setupTable(db, 3);
+    await forceRound(db, t, [['7S', '7C', '9C', '3S'], ['7H', 'JD', '4S'], ['7D', '5S']], 0);
+    await play(db, t, t.ids[0], ['7S']);
+    await play(db, t, t.ids[1], ['7H']);
+    await play(db, t, t.ids[2], ['7D']);
+    await rejects(play(db, t, t.ids[0], ['9C']), /7 ou rien/);
+    const s = await play(db, t, t.ids[0], ['7C']);
+    assert.equal(s.game.events.at(-1).type, 'cut');
+    assert.equal(s.game.turn, t.ids[0], 'J1 remporte le pli et relance');
+    assert.equal(s.game.trick_size, 0);
   });
 
   test('carte ou rien : la contrainte disparaît quand les deux dernières cartes diffèrent', async () => {

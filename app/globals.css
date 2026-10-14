@@ -225,7 +225,8 @@ a {
 }
 
 .card--dimmed {
-  filter: brightness(0.55) saturate(0.6);
+  filter: brightness(0.32) saturate(0.25);
+  transform: translateY(10%);
 }
 
 /* ---------- Galerie ---------- */
@@ -559,7 +560,7 @@ a {
   border: 2px solid var(--cafe);
   border-radius: 12px;
   overflow: hidden;
-  min-width: 200px;
+  min-width: 250px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
@@ -720,31 +721,89 @@ a {
 .opponents {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 4px;
   justify-content: center;
+  padding-top: 6px;
 }
 
 .chip {
-  background: rgba(255, 244, 220, 0.1);
-  border: 2px solid rgba(255, 244, 220, 0.25);
+  position: relative;
+  background: rgba(255, 244, 220, 0.06);
+  border: 2px solid rgba(255, 244, 220, 0.18);
   border-radius: 12px;
   padding: 6px 10px;
   min-width: 96px;
+  opacity: 0.62;
   transition:
     border-color 0.2s,
     background 0.2s,
-    transform 0.2s;
+    transform 0.2s,
+    opacity 0.2s;
+}
+
+.chip--me {
+  border-style: dashed;
+  border-color: rgba(242, 183, 5, 0.6);
+}
+
+.chip--me .chip__name {
+  color: var(--amarillo);
 }
 
 .chip--turn {
+  opacity: 1;
+  border-style: solid;
   border-color: var(--amarillo);
-  background: rgba(242, 183, 5, 0.18);
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 3px rgba(242, 183, 5, 0.25);
+  background: rgba(242, 183, 5, 0.28);
+  transform: translateY(-3px) scale(1.06);
+  box-shadow:
+    0 0 0 3px rgba(242, 183, 5, 0.45),
+    0 0 18px rgba(242, 183, 5, 0.55);
+}
+
+.chip--me.chip--turn {
+  background: var(--amarillo);
+  color: var(--cafe);
+}
+
+.chip--me.chip--turn .chip__name,
+.chip--me.chip--turn .chip__thinking {
+  color: var(--cafe);
 }
 
 .chip--out {
-  opacity: 0.6;
+  opacity: 0.4;
+}
+
+.chip__away {
+  margin-left: 4px;
+  font-size: 0.8rem;
+}
+
+.chip__timer {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(43, 26, 18, 0.35);
+  overflow: hidden;
+}
+
+.chip__timer span,
+.me__timer span {
+  display: block;
+  height: 100%;
+  background: var(--rosa);
+  transform-origin: left;
+  transition: transform 0.25s linear;
+}
+
+.opponents__arrow {
+  align-self: center;
+  opacity: 0.45;
+  font-weight: 800;
 }
 
 .chip__name {
@@ -814,6 +873,23 @@ a {
     var(--amarillo) 70px 74px
   );
   box-shadow: 0 8px 0 rgba(0, 0, 0, 0.35);
+}
+
+.felt-frame--myturn {
+  box-shadow:
+    0 8px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 4px var(--amarillo),
+    0 0 30px rgba(242, 183, 5, 0.55);
+}
+
+.felt-frame--myturn .felt {
+  background:
+    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.2), transparent 60%),
+    radial-gradient(ellipse at center, #17a385 0%, #0f7d65 55%, var(--felt-dark) 100%);
+}
+
+.game:not(.game--myturn) .felt {
+  filter: brightness(0.85) saturate(0.85);
 }
 
 .felt {
@@ -982,9 +1058,78 @@ a {
     box-shadow 0.2s;
 }
 
+.me {
+  position: relative;
+}
+
 .me--turn {
   border-color: var(--amarillo);
-  box-shadow: 0 0 0 3px rgba(242, 183, 5, 0.25);
+  background: rgba(242, 183, 5, 0.12);
+  box-shadow:
+    0 0 0 4px rgba(242, 183, 5, 0.45),
+    0 0 28px rgba(242, 183, 5, 0.45);
+  animation: glow 1.3s ease-in-out infinite alternate;
+}
+
+.me--idle .me__status {
+  opacity: 0.75;
+}
+
+@keyframes glow {
+  from {
+    box-shadow:
+      0 0 0 3px rgba(242, 183, 5, 0.35),
+      0 0 14px rgba(242, 183, 5, 0.3);
+  }
+  to {
+    box-shadow:
+      0 0 0 5px rgba(242, 183, 5, 0.6),
+      0 0 32px rgba(242, 183, 5, 0.6);
+  }
+}
+
+.me__timer {
+  position: absolute;
+  top: -2px;
+  left: 14px;
+  right: 14px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 244, 220, 0.2);
+  overflow: hidden;
+}
+
+.me__timer span {
+  background: var(--amarillo);
+}
+
+.me__timer--urgent span {
+  background: var(--rosa);
+}
+
+.me__clock {
+  margin-left: auto;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.me__clock--urgent {
+  color: #ff6b9c;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+/* Hors de son tour, la main s'efface ; à son tour, les cartes jouables ressortent. */
+.hand--idle .hand__card {
+  filter: brightness(0.62) saturate(0.55) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+
+.hand--active .hand__card--playable:not(.card--selected) {
+  filter: brightness(1.08) drop-shadow(0 0 6px rgba(242, 183, 5, 0.9));
+  transform: translateY(-6%);
+}
+
+.game--myturn .opponents .chip:not(.chip--turn) {
+  opacity: 0.45;
 }
 
 .me__status {
@@ -1145,6 +1290,299 @@ a {
 
 .results .muted {
   text-align: center;
+}
+
+/* ---------- Emotes ---------- */
+
+.emotes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.emotes__btn {
+  font-size: 1.25rem;
+  line-height: 1;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 244, 220, 0.25);
+  background: rgba(255, 244, 220, 0.08);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.emotes__btn:active {
+  transform: scale(1.25);
+}
+
+.emote-bubble {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  z-index: 5;
+  font-size: 1.8rem;
+  line-height: 1;
+  pointer-events: none;
+  background: var(--crema);
+  border: 2px solid var(--cafe);
+  border-radius: 999px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+  animation: emote-pop 3.5s ease forwards;
+}
+
+@keyframes emote-pop {
+  0% {
+    transform: translate(-50%, 10px) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(-50%, 0) scale(1.15);
+    opacity: 1;
+  }
+  20%,
+  85% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -14px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* ---------- Chat ---------- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.chat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat__close {
+  background: none;
+  border: 0;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.chat__list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.chat__empty {
+  text-align: center;
+}
+
+.chat__msg {
+  background: rgba(43, 26, 18, 0.07);
+  border-radius: 10px;
+  padding: 6px 10px;
+  max-width: 88%;
+  align-self: flex-start;
+  overflow-wrap: anywhere;
+}
+
+.chat__msg--mine {
+  align-self: flex-end;
+  background: rgba(15, 163, 163, 0.2);
+}
+
+.chat__msg--ping {
+  background: rgba(242, 183, 5, 0.25);
+  border: 2px solid var(--amarillo);
+}
+
+.chat__meta {
+  font-size: 0.75rem;
+}
+
+.chat__body {
+  white-space: pre-wrap;
+}
+
+.mention {
+  color: var(--rosa-dark);
+  font-weight: 800;
+}
+
+.mention--me {
+  color: var(--cafe);
+  background: var(--amarillo);
+  border-radius: 4px;
+  padding: 0 3px;
+}
+
+.chat__suggest,
+.chat__emojis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chat__suggest button,
+.chat__emojis button {
+  border: 1.5px solid rgba(43, 26, 18, 0.3);
+  background: rgba(43, 26, 18, 0.06);
+  color: inherit;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.chat__emojis button {
+  font-size: 1.2rem;
+  padding: 2px 6px;
+}
+
+.chat__form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.chat__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat__emoji-toggle {
+  font-size: 1.3rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.8;
+}
+
+.chat__emoji-toggle--on {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.chat__error {
+  margin: 0;
+}
+
+.chat-fab {
+  position: relative;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 2px solid var(--cafe);
+  background: var(--crema);
+  color: var(--cafe);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.chat-fab--ping {
+  animation: pulse 0.6s ease-in-out infinite alternate;
+}
+
+.chat-fab__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--rosa);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}
+
+.chat-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(10, 5, 25, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.chat-drawer > div {
+  width: min(560px, 100%);
+}
+
+.chat--drawer {
+  margin: 0;
+  border-radius: 18px 18px 0 0;
+  max-height: 80dvh;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+}
+
+.chat--drawer .chat__list {
+  max-height: 50dvh;
+  min-height: 160px;
+}
+
+/* ---------- Réglages de table ---------- */
+
+.lobby__settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  margin-top: 16px;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.setting__select {
+  width: auto;
+  padding: 6px 10px;
+}
+
+.push__on {
+  margin: 0;
+}
+
+.push--compact .btn {
+  width: 100%;
+}
+
+.menu__settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(43, 26, 18, 0.15);
+  font-size: 0.9rem;
+}
+
+.menu__settings .muted {
+  color: inherit;
 }
 
 @media (min-width: 760px) {

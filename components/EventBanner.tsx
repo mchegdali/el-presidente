@@ -29,6 +29,18 @@ function describe(ev: GameEvent, nameOf: (id: string) => string, roundNo: number
         text: ev.reason === 'queen' ? `${who} a la Dame de cœur et commence` : `${who} commence`,
         tone: 'small',
       };
+    case 'timeout':
+      return {
+        key: ev.seq,
+        title: '¡Se acabó el tiempo!',
+        text:
+          ev.action === 'give'
+            ? `${who} a trop tardé : cartes données automatiquement`
+            : ev.action === 'play'
+              ? `${who} a trop tardé : sa plus petite carte est jouée`
+              : `${who} a trop tardé et passe`,
+        tone: 'small',
+      };
     case 'exchange_done':
       return { key: ev.seq, title: 'Cartes échangées', text: `${who} commence`, tone: 'small' };
     default:

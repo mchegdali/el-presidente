@@ -35,3 +35,19 @@ export async function call<T = TableState>(fn: string, args: Record<string, unkn
   }
   return data as T;
 }
+
+/**
+ * Appel RPC qui survit à la fermeture de la page (fetch keepalive), sans réponse.
+ * Sert à signaler que le joueur quitte l'onglet.
+ */
+export function rpcBeacon(fn: string, args: Record<string, unknown>) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return;
+  fetch(`${url}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    keepalive: true,
+    headers: { apikey: key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  }).catch(() => {});
+}
