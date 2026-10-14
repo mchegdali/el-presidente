@@ -5,11 +5,8 @@
   "semi": true,
   "trailingComma": "all",
   "ignorePatterns": [
-    "supabase/**",
     "**/drizzle/**",
     "bun.lock",
-    "tests/**",
-    "scripts/**",
     "apps/web/public/**",
     "**/types/**",
     "**/dist/**",

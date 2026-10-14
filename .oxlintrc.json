@@ -23,12 +23,9 @@
     "react/no-array-index-key": "off"
   },
   "ignorePatterns": [
-    "supabase/**",
     "**/.next/**",
     "**/drizzle/**",
     "**/node_modules/**",
-    "tests/**",
-    "scripts/**",
     "**/types/**",
     "**/dist/**",
     "apps/web/.next/**",
