@@ -1,0 +1,88 @@
+# CX23 n°1 : HAProxy (TLS) → API (Bun) → Postgres primaire, reliés par sockets Unix.
+# Réseau hôte : ni NAT ni pont Docker sur le chemin des paquets.
+#
+#   docker compose --env-file /etc/presidente/api.env up -d
+name: presidente
+
+x-shared: &shared
+  restart: unless-stopped
+  network_mode: host
+  logging:
+    driver: json-file
+    options: { max-size: 20m, max-file: '5' }
+
+services:
+  postgres:
+    <<: *shared
+    image: postgres:17.6-bookworm
+    shm_size: 1g
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser
+      POSTGRES_DB: presidente
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      # Adresse privée Hetzner (réplication) : seule écoute réseau de Postgres.
+      - -c
+      - listen_addresses=${PG_PRIVATE_IP}
+    volumes:
+      - /srv/presidente/pgdata:/var/lib/postgresql/data
+      - /srv/presidente/run/postgresql:/var/run/postgresql
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./certs/postgres:/etc/postgresql/certs:ro
+      - ./init:/docker-entrypoint-initdb.d:ro
+    secrets: [pg_superuser, pg_app, pg_replicator]
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '/var/run/postgresql', '-U', 'postgres']
+      interval: 5s
+      retries: 10
+
+  api:
+    <<: *shared
+    image: ghcr.io/mchegdali/el-presidente-api:${API_TAG:-latest}
+    # Utilisateur non root ; groupe 999 (celui de Postgres) partagé par les trois services :
+    # c'est lui qui donne accès aux sockets Unix.
+    user: '65532:999'
+    env_file: /etc/presidente/api.env
+    environment:
+      LISTEN_UNIX: /run/presidente/api.sock
+      TRUST_PROXY: 'true'
+      NODE_ENV: production
+    volumes:
+      - /srv/presidente/run/presidente:/run/presidente
+      - /srv/presidente/run/postgresql:/var/run/postgresql
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    depends_on:
+      postgres: { condition: service_healthy }
+    # Arrêt propre : l'API écrit les manches en attente avant de partir.
+    stop_grace_period: 20s
+
+  haproxy:
+    <<: *shared
+    image: haproxy:3.2-alpine
+    user: '99:999'
+    environment:
+      HAPROXY_MAXCONN: '20000'
+      ACME_THUMBPRINT: ${ACME_THUMBPRINT}
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - /srv/presidente/certs:/etc/haproxy/certs:ro
+      - /srv/presidente/run/presidente:/run/presidente
+      - /srv/presidente/run/haproxy:/run/haproxy
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    depends_on: [api]
+
+secrets:
+  pg_superuser:
+    file: /etc/presidente/pg_superuser
+  pg_app:
+    file: /etc/presidente/pg_app
+  pg_replicator:
+    file: /etc/presidente/pg_replicator

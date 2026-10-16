@@ -1,0 +1,123 @@
+@layer components {
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-block-end: 12px;
+  }
+
+  .left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-inline-size: 0;
+  }
+
+  .brand {
+    color: var(--amarillo);
+    font-size: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .title {
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (width <= 420px) {
+      display: none;
+    }
+  }
+
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live {
+    font-family: var(--font-slab);
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgb(255 244 220 / 0.12);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+      content: '';
+      inline-size: 8px;
+      block-size: 8px;
+      border-radius: 50%;
+      background: var(--amarillo);
+    }
+  }
+
+  .on::before {
+    background: var(--ok);
+    box-shadow: 0 0 6px var(--ok);
+  }
+
+  .menu {
+    position: relative;
+  }
+
+  .toggle {
+    inline-size: 38px;
+    block-size: 38px;
+    border-radius: 50%;
+    border: 2px solid rgb(255 244 220 / 0.4);
+    background: transparent;
+    color: var(--crema);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .list {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-start: 44px;
+    z-index: 50;
+    background: var(--crema);
+    border: 2px solid var(--cafe);
+    border-radius: 12px;
+    overflow: hidden;
+    min-inline-size: 250px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.45);
+
+    & > button {
+      display: block;
+      inline-size: 100%;
+      text-align: start;
+      padding: 12px 14px;
+      border: 0;
+      background: none;
+      color: var(--cafe);
+      font-weight: 700;
+      cursor: pointer;
+
+      & + button {
+        border-block-start: 1px solid rgb(43 26 18 / 0.15);
+      }
+
+      &:hover {
+        background: rgb(214 36 110 / 0.12);
+      }
+    }
+  }
+
+  .settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-block-end: 1px solid rgb(43 26 18 / 0.15);
+    font-size: 0.9rem;
+    color: var(--cafe);
+    --muted: var(--cafe);
+  }
+}

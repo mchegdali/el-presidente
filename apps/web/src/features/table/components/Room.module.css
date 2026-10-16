@@ -1,0 +1,121 @@
+@layer components {
+  .grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    margin: 12px 0 18px;
+  }
+
+  .start {
+    text-align: center;
+    margin: 18px 0 24px;
+  }
+
+  .waiting {
+    font-size: 1.1rem;
+  }
+
+  .settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+    margin-block-start: 16px;
+  }
+
+  .results :global(.muted) {
+    text-align: center;
+  }
+
+  .resultsTitle {
+    text-align: center;
+    font-size: clamp(2rem, 8vw, 3.2rem);
+    color: var(--amarillo);
+    text-shadow: 3px 3px 0 var(--rosa);
+    margin: 8px 0 18px;
+  }
+
+  .podium {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-inline-size: 640px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    container: podium / inline-size;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 44px 44px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    background: var(--crema);
+    color: var(--cafe);
+    border: 3px solid var(--cafe);
+    border-radius: 14px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 0 rgb(0 0 0 / 0.35);
+
+    @container podium (width <= 420px) {
+      grid-template-columns: 34px 34px 1fr auto;
+      padding: 8px 10px;
+    }
+  }
+
+  .president {
+    background: var(--amarillo);
+    transform: scale(1.03);
+  }
+
+  .vice_president {
+    background: #ffe28a;
+  }
+
+  .vice_trou {
+    background: #e9cfb0;
+  }
+
+  .trou {
+    background: #c9a27e;
+  }
+
+  .neutral {
+    background: var(--crema);
+  }
+
+  .pos {
+    font-family: var(--font-slab);
+    font-size: 1.2rem;
+  }
+
+  .icon {
+    font-size: 1.8rem;
+    text-align: center;
+  }
+
+  .who {
+    font-size: 1.15rem;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .role {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: end;
+  }
+
+  .fr {
+    font-weight: 800;
+  }
+
+  .es {
+    font-size: 0.85rem;
+    color: var(--rosa-dark);
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@el-presidente/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./types/app.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/app.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --compile --bytecode --format=esm --minify --sourcemap=linked --production --target=bun-linux-x64-modern --outfile dist/presidente-api",
+    "typecheck": "tsc --noEmit",
+    "test": "LOG_LEVEL=warn bun test",
+    "build:types": "tsc -p tsconfig.types.json"
+  },
+  "dependencies": {
+    "@el-presidente/db": "workspace:*",
+    "@el-presidente/game": "workspace:*",
+    "@hono/zod-validator": "0.9.1",
+    "better-auth": "1.7.8",
+    "better-result": "3.0.1",
+    "hono": "4.13.13",
+    "web-push": "3.6.7",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@el-presidente/config": "workspace:*",
+    "@types/bun": "1.4.3",
+    "@types/web-push": "3.6.4",
+    "typescript": "5.9.3"
+  }
+}

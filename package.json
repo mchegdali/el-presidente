@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "infra/bench"
   ],
   "type": "module",
   "scripts": {
@@ -13,11 +14,9 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun run --filter '*' test",
-    "test:legacy": "node --test tests/*.test.mjs"
+    "test": "bun run --filter '*' test"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.8",
     "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
     "typescript": "5.9.3"

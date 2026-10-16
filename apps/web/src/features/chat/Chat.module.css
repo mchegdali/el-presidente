@@ -1,0 +1,138 @@
+@layer components {
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-block-start: 16px;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .close {
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+
+  .list {
+    max-block-size: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-inline-end: 4px;
+    /* L'historique hors écran n'est ni mis en page ni peint. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 240px;
+  }
+
+  .empty {
+    text-align: center;
+  }
+
+  .msg {
+    background: rgb(43 26 18 / 0.07);
+    border-radius: 10px;
+    padding: 6px 10px;
+    max-inline-size: 88%;
+    align-self: flex-start;
+    overflow-wrap: anywhere;
+  }
+
+  .mine {
+    align-self: flex-end;
+    background: rgb(15 163 163 / 0.2);
+  }
+
+  .ping {
+    background: rgb(242 183 5 / 0.25);
+    border: 2px solid var(--amarillo);
+  }
+
+  .meta {
+    font-size: 0.75rem;
+  }
+
+  .body {
+    white-space: pre-wrap;
+  }
+
+  .mention {
+    color: var(--rosa-dark);
+    font-weight: 800;
+  }
+
+  .mentionMe {
+    color: var(--cafe);
+    background: var(--amarillo);
+    border-radius: 4px;
+    padding: 0 3px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    & button {
+      border: 1.5px solid rgb(43 26 18 / 0.3);
+      background: rgb(43 26 18 / 0.06);
+      color: inherit;
+      border-radius: 999px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+  }
+
+  .emojis button {
+    font-size: 1.2rem;
+    padding: 2px 6px;
+  }
+
+  .form {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .input {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  .emojiToggle {
+    font-size: 1.3rem;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 0 2px;
+    opacity: 0.8;
+  }
+
+  .emojiOn {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+
+  .error {
+    margin: 0;
+  }
+
+  .drawer {
+    margin: 0;
+    border-radius: 18px 18px 0 0;
+    max-block-size: 80dvh;
+    padding-block-end: max(14px, env(safe-area-inset-bottom));
+
+    & .list {
+      max-block-size: 50dvh;
+      min-block-size: 160px;
+    }
+  }
+}

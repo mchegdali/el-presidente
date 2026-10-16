@@ -1,11 +1,7 @@
 # El Presidente
 
 Le jeu de cartes **Président**, à la mexicaine, jouable à plusieurs en temps réel depuis
-téléphones et ordinateurs. Pas de compte : on crée une table, on partage le lien, chacun
-entre son nom et c'est parti.
-
-- **Front** : Next.js (App Router) déployé sur Vercel.
-- **Back** : Supabase (Postgres + Realtime). Toute la logique de jeu est dans la base.
+téléphones et ordinateurs. On se connecte avec Google, on crée une table, on partage le lien.
 
 ## Règles de la casa
 
@@ -38,72 +34,64 @@ entre son nom et c'est parti.
 - **Passe automatique** : l'hôte règle un délai par tour (15 s à 2 min) ou la désactive.
   Délai dépassé : le joueur passe ; s'il ouvre le pli, sa plus petite carte est jouée ;
   pendant l'échange, ses cartes les plus faibles sont données.
-- **Notifications push** : « 🔔 Me prévenir quand c'est mon tour ». Si votre page n'est
-  pas au premier plan quand vient votre tour (ou quand on vous @mentionne), vous recevez
-  une notification. Sur iPhone, il faut d'abord ajouter le site à l'écran d'accueil.
+- **Notifications push** : « 🔔 Me prévenir quand c'est mon tour ». Si aucun de vos onglets
+  n'est au premier plan quand vient votre tour (ou quand on vous @mentionne), vous recevez
+  une notification sur vos appareils abonnés. Sur iPhone, il faut d'abord ajouter le site à
+  l'écran d'accueil.
 - Une table inexistante ou fermée renvoie à l'accueil avec le seul message « Cette table
   n'existe pas. ».
 
 ## Architecture
 
 ```
-app/                 pages (accueil, table /t/[code], galerie /cartes)
-components/          écrans (salon, partie, résultats) et cartes SVG
-lib/                 client Supabase, synchronisation temps réel, helpers cartes
-supabase/migrations/ schéma + logique de jeu en PL/pgSQL
-tests/               tests de la logique de jeu (Postgres en mémoire via PGlite)
-scripts/             backend local pour développer sans Supabase
+apps/web/        Next 16 (Vercel) : pages statiques, état de la table par WebSocket
+apps/api/        Bun + Hono (Hetzner) : seul à parler à Postgres ; jeu, temps réel, auth
+packages/game/   Règles du jeu (pures, partagées) et protocole WebSocket binaire
+packages/db/     Schéma Drizzle et migrations (tables, contraintes, index : aucune fonction)
+packages/config/ tsconfig commun
+infra/           Image de l'API, HAProxy, Postgres primaire + standby, sauvegardes, banc de charge
 ```
 
-- Les clients n'accèdent jamais directement aux tables (RLS sans policy). Ils appellent des
-  fonctions RPC (`create_lobby`, `join_lobby`, `start_round`, `play_cards`, `pass_turn`,
-  `give_cards`, …) qui valident chaque coup côté serveur et renvoient l'état vu par le
-  joueur : **chacun ne reçoit que sa propre main**.
-- Un joueur est identifié par un jeton aléatoire stocké dans son navigateur (seul son hash
-  est en base) : il retrouve sa place après un rafraîchissement.
-- À chaque changement, la base publie `{ version }` sur le canal Realtime `lobby:<id>`
-  (`realtime.send`) ; les clients relisent alors leur état. Une relecture périodique sert
-  de filet de sécurité.
-- Les tables inactives depuis 2 jours sont supprimées à la création d'une nouvelle table.
-- Chat, abonnements push et file de notifications sont dans le schéma `private`, jamais
-  exposé par l'API. Chaque onglet visible envoie un signe de vie (`ping`) toutes les 15 s,
-  et signale son passage en arrière-plan. Quand c'est au tour d'un joueur absent, la base
-  met une notification en file et réveille l'Edge Function `supabase/functions/push`
-  (pg_net), qui l'envoie en Web Push.
-- La passe automatique est vérifiée par le serveur : les clients la demandent quand le
-  chrono affiché tombe à zéro (`claim_timeout`), et une tâche pg_cron (toutes les 5 s)
-  l'applique même si plus personne n'a la page ouverte.
+- **Tranches verticales** des deux côtés : `apps/api/src/features/<domaine>/<cas d'usage>/`
+  (route, cas d'usage, requêtes, tests), `apps/web/src/features/<domaine>/`.
+- **Erreurs typées** côté API (`better-result`) : chaque cas d'usage renvoie un `Result`, une
+  seule fonction traduit les erreurs en statuts HTTP ; le client `hc` du site est typé par
+  les routes Hono (`AppType`), sans génération de code.
+- **Temps réel** : une WebSocket par onglet, messages binaires (un coup tient en quelques
+  octets), diffusion par le pub/sub natif de Bun. L'état des parties vit en mémoire dans
+  l'API ; il est écrit en base par lots (toutes les ~10 ms) et rechargé au redémarrage.
+  Le client avance son état avec les deltas reçus (même code que le serveur, parité testée).
+- **Passe automatique** : une seule horloge côté serveur (tas binaire), qui joue même si plus
+  personne n'a la page ouverte.
+- **Sécurité** : comptes Google (better-auth), cookie `HttpOnly` partagé entre le site et
+  l'API, origine vérifiée sur toute requête qui modifie l'état et à l'ouverture des
+  WebSockets, entrées validées (Zod / décodeur binaire borné), limites de débit, CSP. Les
+  messages du chat gardent leur auteur et son adresse (LCEN), et peuvent être signalés.
+
+Déploiement et exploitation : [`infra/README.md`](infra/README.md).
 
 ## Développement
 
-```bash
-npm install
-npm test                 # logique de jeu : règles + parties complètes de 3 à 8 joueurs
+Prérequis : [Bun](https://bun.sh) 1.4, Docker (pour Postgres).
 
-# Jouer en local sans Supabase (Postgres en mémoire, sans temps réel) :
-npm run dev:backend      # http://localhost:54321
-cp .env.example .env.local   # puis pointer NEXT_PUBLIC_SUPABASE_URL sur http://localhost:54321
-npm run dev              # http://localhost:3000
+```bash
+bun install
+docker compose -f compose.dev.yml up -d          # Postgres 17 sur localhost:5432
+cp apps/api/.env.example apps/api/.env           # ENABLE_TEST_LOGIN pour jouer sans Google
+cp apps/web/.env.example apps/web/.env.local
+bun run --cwd packages/db migrate
+bun run dev                                      # API :4000 + site :3000
 ```
 
-Pour tester à plusieurs en local, ouvrez la table dans des fenêtres de navigation privée
-différentes (chaque fenêtre a son propre jeton).
+Sans identifiants Google, connectez-vous avec la route de test (développement uniquement) :
+`curl -X POST localhost:4000/test/login -H 'origin: http://localhost:3000' -H
+'content-type: application/json' -d '{"name":"Ana"}'` renvoie un cookie à poser dans le
+navigateur (Playwright le fait dans `apps/web/e2e`).
 
-## Déploiement
-
-1. **Supabase** : appliquer les fichiers de `supabase/migrations/` dans l'ordre (SQL Editor
-   ou `supabase db push`), déployer l'Edge Function `push` (sans vérification JWT), puis
-   renseigner la configuration des notifications (clés VAPID générées pour le projet,
-   jamais commitées) :
-   ```sql
-   insert into private.config (key, value) values
-     ('vapid_public', '<clé publique>'), ('vapid_private', '<clé privée>'),
-     ('vapid_subject', 'https://<votre-domaine>'),
-     ('push_url', 'https://<projet>.supabase.co/functions/v1/push');
-   ```
-2. **Vercel** : projet relié à ce dépôt, avec les variables d'environnement
-   `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (voir
-   `.env.example`). La branche `main` est déployée en production.
-
-Free tier : un projet Supabase gratuit est mis en pause après une semaine sans activité ;
-il se réactive depuis le tableau de bord Supabase.
+```bash
+bun run lint && bun run format:check && bun run typecheck
+bun run test                                     # PGlite par défaut ; TEST_DATABASE_URL=… pour un vrai Postgres
+bun run --cwd apps/web e2e                       # 3 navigateurs jouent une partie (API + site + Postgres)
+bun run --cwd packages/game bench                # micro-banc du moteur
+bun run --cwd infra/bench bots --api http://localhost:4000 --tables 10   # banc de charge (voir infra/bench)
+```

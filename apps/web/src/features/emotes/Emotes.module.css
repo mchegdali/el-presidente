@@ -1,0 +1,61 @@
+@layer components {
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-block-start: 12px;
+  }
+
+  .btn {
+    font-size: 1.25rem;
+    line-height: 1;
+    inline-size: 38px;
+    block-size: 38px;
+    border-radius: 50%;
+    border: 1.5px solid rgb(255 244 220 / 0.25);
+    background: rgb(255 244 220 / 0.08);
+    cursor: pointer;
+    transition: transform 0.1s;
+
+    &:active {
+      transform: scale(1.25);
+    }
+  }
+
+  .bubble {
+    position: absolute;
+    inset-block-start: -30px;
+    inset-inline-start: 50%;
+    z-index: 5;
+    font-size: 1.8rem;
+    line-height: 1;
+    pointer-events: none;
+    background: var(--crema);
+    border: 2px solid var(--cafe);
+    border-radius: 999px;
+    padding: 4px 8px;
+    box-shadow: 0 4px 0 rgb(0 0 0 / 0.3);
+    animation: emote-pop 3.5s ease forwards;
+  }
+}
+
+@keyframes emote-pop {
+  0% {
+    transform: translate(-50%, 10px) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(-50%, 0) scale(1.15);
+    opacity: 1;
+  }
+  20%,
+  85% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -14px) scale(0.9);
+    opacity: 0;
+  }
+}

@@ -69,6 +69,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+!**/.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -151,3 +152,7 @@ vite.config.ts.timestamp-*
 # Next.js
 next-env.d.ts
 .vercel
+apps/api/dist
+types
+test-results
+playwright-report

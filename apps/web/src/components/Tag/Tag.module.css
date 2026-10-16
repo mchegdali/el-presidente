@@ -1,0 +1,21 @@
+@layer components {
+  .tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--rosa);
+    color: var(--crema);
+    border: 1.5px solid var(--cafe);
+  }
+
+  .role {
+    background: var(--amarillo);
+    color: var(--cafe);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+}

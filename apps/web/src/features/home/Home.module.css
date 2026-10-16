@@ -1,0 +1,74 @@
+@layer components {
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: 8px 0 24px;
+  }
+
+  .title {
+    font-size: clamp(2.6rem, 11vw, 4.6rem);
+    margin: 6px 0 0;
+    color: var(--amarillo);
+    text-shadow:
+      3px 3px 0 var(--rosa),
+      6px 6px 0 var(--cafe);
+    line-height: 1.05;
+  }
+
+  .tagline {
+    font-size: 1.1rem;
+    margin: 10px 0 0;
+  }
+
+  .fan {
+    position: relative;
+    block-size: 150px;
+    inline-size: 260px;
+    margin-block-start: 18px;
+  }
+
+  .fanCard {
+    --card-w: 92px;
+    position: absolute;
+    inset-inline-start: 50%;
+    inset-block-end: 0;
+    translate: -50% 0;
+    transform-origin: 50% 120%;
+  }
+
+  .forms {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-block-end: 18px;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+
+    & > button:last-child {
+      margin-block-start: auto;
+    }
+  }
+
+  .account {
+    text-align: center;
+  }
+
+  .signOut {
+    background: none;
+    border: 0;
+    color: var(--amarillo);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .footer {
+    text-align: center;
+    margin: 18px 0;
+  }
+}
