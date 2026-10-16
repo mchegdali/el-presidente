@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off",
+    "unicorn/no-array-sort": "off",
+    "typescript/no-explicit-any": "error",
+    "eqeqeq": ["error", "smart"],
+    "no-await-in-loop": "off"
+  },
+  "ignorePatterns": [
+    "supabase/**",
+    "**/.next/**",
+    "**/drizzle/**",
+    "**/node_modules/**",
+    "tests/**",
+    "scripts/**",
+    "apps/web/app/**",
+    "apps/web/components/**",
+    "apps/web/lib/**"
+  ]
+}
