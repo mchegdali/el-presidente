@@ -4,6 +4,11 @@ name: Déploiement de l'API
 # image → GHCR, puis sur le serveur : migrations, redémarrage de l'API.
 on:
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Déployer sur le serveur (décocher pour publier l'image seulement)
+        type: boolean
+        default: true
 
 concurrency:
   group: deploy-api
@@ -37,6 +42,7 @@ jobs:
 
   deploy:
     needs: image
+    if: inputs.deploy
     runs-on: ubuntu-24.04
     environment: production
     steps:

@@ -28,31 +28,49 @@ Navigateur ──HTTPS──▶ Vercel (Next, arn1)
    - Pare-feu Hetzner : n°1 → 22 (votre IP), 80, 443 ; n°2 → 22 (votre IP) seulement.
      Postgres n'a **aucun** port public (le standby passe par le réseau privé).
 2. **DNS** (zone `chegdali.fr`) : `el-presidente` → CNAME Vercel ; `api.el-presidente` → A/AAAA de n°1.
-3. **Sur chaque serveur** (root) : cloner le dépôt dans `/srv/presidente/app`, puis
+3. **Google OAuth** : client « Application Web », redirection autorisée
+   `https://api.el-presidente.chegdali.fr/api/auth/callback/google`.
+4. **Sur chaque serveur** (root) : cloner le dépôt dans `/srv/presidente/app`, puis
    `ROLE=primary ./infra/system/bootstrap.sh` (ou `ROLE=standby`). Ajouter la clé SSH de
    déploiement dans `/home/deploy/.ssh/authorized_keys`.
-4. **Secrets** (n°1) dans `/etc/presidente/` (mode 600) : `pg_superuser`, `pg_app`,
-   `pg_replicator`, et `api.env` (modèle : `primary/api.env.example`). Copier `pg_replicator`
-   sur n°2.
-5. **Certificat Postgres** (réplication en SSL) : `infra/primary/certs/postgres/server.{crt,key}`
+5. **Secrets** (n°1) dans `/etc/presidente/` (mode 600) : `pg_superuser`, `pg_app`,
+   `pg_replicator`, et `api.env` (modèle : `primary/api.env.example`, qui indique comment
+   générer chaque valeur). Copier `pg_replicator` sur n°2.
+6. **Certificat Postgres** (réplication en SSL) : `infra/primary/certs/postgres/server.{crt,key}`
    (auto-signé suffit, propriétaire 999, clé en 600), copié à l'identique sur n°2.
-6. **Primaire** : `docker compose up -d postgres`, puis `primary/acme/issue.sh` (placer
-   `ACME_THUMBPRINT` dans l'environnement), puis `deploy.sh` (migrations + API) et
-   `docker compose up -d haproxy`.
-7. **Standby** : `PRIMARY_IP=10.0.0.2 standby/init-standby.sh`, `docker compose up -d`,
+7. **GitHub** : environnement `production` avec `DEPLOY_SSH_KEY`, `DEPLOY_HOST`,
+   `DEPLOY_KNOWN_HOSTS`. Lancer une première fois le workflow « Déploiement de l'API » en
+   décochant « Déployer » : il publie seulement l'image sur GHCR. Le paquet GHCR est privé par
+   défaut : le rendre public, ou faire `docker login ghcr.io` sur n°1 avec un jeton
+   `read:packages`.
+8. **Primaire**, dans cet ordre. HAProxy répond lui-même au défi ACME, il doit donc tourner
+   avant l'émission du certificat ; comme il ne démarre pas sans certificat, on lui en donne
+   d'abord un temporaire.
+
+   ```sh
+   cd /srv/presidente/app/infra/primary
+   docker compose up -d postgres
+   EMAIL=… acme/issue.sh register          # ajouter la ligne ACME_THUMBPRINT=… affichée dans .env
+   acme/issue.sh placeholder               # certificat auto-signé temporaire
+   docker compose run --rm --no-deps api migrate
+   docker compose up -d haproxy            # démarre aussi l'API
+   DOMAIN=api.el-presidente.chegdali.fr acme/issue.sh issue
+   docker compose restart haproxy          # retire le certificat temporaire
+   ```
+
+9. **Standby** : `PRIMARY_IP=10.0.0.2 standby/init-standby.sh`, `docker compose up -d`,
    puis `backup/install.sh`.
-8. **Google OAuth** : redirection autorisée
-   `https://api.el-presidente.chegdali.fr/api/auth/callback/google`.
-9. **Vercel** : projet sur `apps/web` (voir `apps/web/vercel.json`, région `arn1`),
-   variable `NEXT_PUBLIC_API_URL=https://api.el-presidente.chegdali.fr`, domaine
-   `el-presidente.chegdali.fr`.
-10. **GitHub** : environnement `production` avec `DEPLOY_SSH_KEY`, `DEPLOY_HOST`,
-    `DEPLOY_KNOWN_HOSTS` ; le workflow « Déploiement de l'API » publie l'image sur GHCR
-    puis lance `deploy.sh`.
+10. **Vercel** : projet sur `apps/web` (voir `apps/web/vercel.json`, région `arn1`),
+    variable `NEXT_PUBLIC_API_URL=https://api.el-presidente.chegdali.fr`, domaine
+    `el-presidente.chegdali.fr`. Si le projet existait déjà, retirer les variables Supabase.
+11. **Vérifier la production** : connexion Google, partie réelle sur plusieurs appareils,
+    port 5432 injoignable depuis Internet (`nc -vz <ip publique> 5432`), restauration d'une
+    sauvegarde.
+12. **Ancien projet Supabase** : le supprimer (ou le mettre en pause) une fois la bascule faite.
 
 ## Exploitation
 
-- **Déployer l'API** : workflow « Déploiement de l'API ». Les parties en cours survivent au
+- **Déployer l'API** : workflow « Déploiement de l'API » (image GHCR, migrations, redémarrage). Les parties en cours survivent au
   redémarrage (écriture des manches en attente à l'arrêt, rechargement au démarrage, échéances
   de passe automatique restaurées) ; les clients se reconnectent seuls.
 - **Métriques** : `curl -H "Authorization: Bearer $METRICS_TOKEN" --unix-socket
