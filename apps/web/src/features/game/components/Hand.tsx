@@ -12,11 +12,13 @@ type Props = {
   playable?: ReadonlySet<string> | null;
   /** C'est au joueur d'agir : les cartes jouables sont mises en avant. */
   active?: boolean;
+  /** Cartes qui ouvrent un groupe : un espace les sépare de la précédente. */
+  breaks?: ReadonlySet<string>;
 };
 
 // Dispose la main en éventail sur une ou plusieurs rangées selon la largeur disponible,
 // en gardant l'index (valeur + couleur) de chaque carte visible.
-export function Hand({ cards, selected, onToggle, playable, active = false }: Props) {
+export function Hand({ cards, selected, onToggle, playable, active = false, breaks }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -49,8 +51,15 @@ export function Hand({ cards, selected, onToggle, playable, active = false }: Pr
     >
       {width > 0 &&
         rows.map((row, r) => {
-          const step = row.length > 1 ? Math.min(maxStep, (width - cardW) / (row.length - 1)) : 0;
-          const left = (width - (cardW + step * (row.length - 1))) / 2;
+          // Espace entre groupes, abandonné s'il serrerait trop les cartes.
+          const gaps = row.filter((c, i) => i > 0 && breaks?.has(c)).length;
+          const fit = (gap: number) =>
+            row.length > 1 ? Math.min(maxStep, (width - cardW - gap * gaps) / (row.length - 1)) : 0;
+          let gap = gaps > 0 ? cardW * 0.25 : 0;
+          if (gap > 0 && fit(gap) < minStep) gap = 0;
+          const step = fit(gap);
+          const left = (width - (cardW + step * (row.length - 1) + gap * gaps)) / 2;
+          let shift = 0;
           return (
             <div
               key={r}
@@ -59,6 +68,7 @@ export function Hand({ cards, selected, onToggle, playable, active = false }: Pr
             >
               {row.map((card, i) => {
                 const isPlayable = !playable || playable.has(card);
+                if (i > 0 && breaks?.has(card)) shift += gap;
                 return (
                   <PlayingCard
                     key={card}
@@ -67,7 +77,7 @@ export function Hand({ cards, selected, onToggle, playable, active = false }: Pr
                     dimmed={playable ? !playable.has(card) : false}
                     onClick={onToggle ? () => onToggle(card) : undefined}
                     className={`${styles.card} ${active && isPlayable && !selected.has(card) ? styles.playable : ''}`}
-                    style={{ left: left + i * step, width: cardW, zIndex: i }}
+                    style={{ left: left + i * step + shift, width: cardW, zIndex: i }}
                   />
                 );
               })}

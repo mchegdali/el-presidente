@@ -33,6 +33,9 @@ téléphones et ordinateurs. On se connecte avec Google, on crée une table, on 
   dans l'ordre du tour ; 💤 signale un joueur dont la page est fermée ou en arrière-plan.
 - **Chat** dans le salon et pendant la partie (bouton 💬), avec émoticônes et `@mentions`
   (autocomplétion ; la personne mentionnée est mise en évidence et son téléphone vibre).
+- **Main** : triée par valeur ou par combinaisons (simples, paires, brelans, carrés),
+  choix gardé dans le navigateur. En ouverture, un double appui sur une carte sélectionne
+  toute sa valeur.
 - **Emotes rapides** : une bulle s'affiche quelques secondes au-dessus de votre nom.
 - **Passe automatique** : l'hôte règle un délai par tour (15 s à 2 min) ou la désactive.
   Délai dépassé : le joueur passe ; s'il ouvre le pli, sa plus petite carte est jouée ;

@@ -13,6 +13,7 @@ import { EmoteBar } from '../../emotes/Emotes';
 import { TopBar } from '../../table/components/TopBar';
 import { useTableContext } from '../../table/context';
 import { forcedRankOf, playableCards, rankOfText, selectionProblem, sortCards } from '../cards';
+import { arrangeHand, HAND_ORDER_LABELS, setHandOrder, useHandOrder } from '../hand-order';
 import { useCountdown, type Clock } from '../use-countdown';
 import { EventBanner } from './EventBanner';
 import { ExchangePanel } from './ExchangePanel';
@@ -38,6 +39,10 @@ export function GameView() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [chatOpen, setChatOpen] = useState(false);
+  const order = useHandOrder();
+  const arranged = arrangeHand(shownHand, order);
+  // Double appui sur une carte : toute sa valeur (paire, brelan, carré en ouverture).
+  const lastTap = useRef<{ card: string; at: number } | null>(null);
   const myTurn = game.phase === 'playing' && game.turn === me;
 
   // Les cartes sélectionnées qui ont quitté la main sont oubliées.
@@ -71,6 +76,13 @@ export function GameView() {
 
   const toggle = (card: string) => {
     setError(null);
+    const at = performance.now();
+    const doubleTap = lastTap.current?.card === card && at - lastTap.current.at < 350;
+    lastTap.current = doubleTap ? null : { card, at };
+    if (doubleTap && !myGive && game.trickSize === 0) {
+      setSelected(new Set(hand.filter((c) => rankOfText(c) === rankOfText(card))));
+      return;
+    }
     setSelected((sel) => {
       const next = new Set(sel);
       if (next.has(card)) {
@@ -164,12 +176,26 @@ export function GameView() {
         </div>
         {error && <Alert className={styles.error}>{error}</Alert>}
         <Hand
-          cards={shownHand}
+          cards={arranged.cards}
+          breaks={arranged.breaks}
           selected={selected}
           onToggle={mustAct ? toggle : undefined}
           playable={myGive ? null : playable}
           active={mustAct}
         />
+        {shownHand.length > 1 && (
+          <p className={styles.handTools}>
+            <button
+              type="button"
+              className={styles.sortToggle}
+              onClick={() => setHandOrder(order === 'rank' ? 'groups' : 'rank')}
+              aria-label={`Trier la main ${HAND_ORDER_LABELS[order === 'rank' ? 'groups' : 'rank']}`}
+            >
+              ↕ Tri : {HAND_ORDER_LABELS[order]}
+            </button>
+            {myTurn && game.trickSize === 0 && <span className="muted small">Double appui : toute la valeur</span>}
+          </p>
+        )}
         <div className={styles.actions}>
           {myGive && (
             <Button variant="gold" disabled={pending || selection.length !== myGive.count} onClick={() => act('give')}>
