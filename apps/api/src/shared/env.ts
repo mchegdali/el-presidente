@@ -5,7 +5,8 @@ const schema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     DATABASE_URL: z.string().min(1),
     /** Socket Unix d'écoute (derrière HAProxy) ; sinon PORT. */
-    LISTEN_UNIX: z.string().optional(),
+    // Vide = absent : permet d'annuler la valeur de l'image (`LISTEN_UNIX=`) pour écouter en TCP.
+    LISTEN_UNIX: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
     PORT: z.coerce.number().int().positive().default(4000),
     /** URL publique de l'API (better-auth). */
     API_ORIGIN: z.url(),

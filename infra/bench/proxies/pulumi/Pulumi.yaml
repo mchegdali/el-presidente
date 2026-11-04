@@ -1,0 +1,3 @@
+name: el-presidente-bench
+description: Serveurs jetables du banc des proxys (CX23 testé + CCX23 générateur, IPv6 seulement)
+runtime: bun

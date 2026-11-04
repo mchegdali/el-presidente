@@ -2,7 +2,7 @@
 # une image distroless (ni shell ni gestionnaire de paquets), utilisateur non root.
 #   docker build -f infra/api.Dockerfile -t ghcr.io/mchegdali/el-presidente-api .
 
-FROM oven/bun:1.4.2 AS build
+FROM oven/bun:1.4.4 AS build
 WORKDIR /src
 COPY package.json bun.lock ./
 COPY packages ./packages
@@ -14,7 +14,7 @@ RUN --mount=type=secret,id=ca,required=false \
     bun install --frozen-lockfile --production --filter '@el-presidente/api'
 RUN cd apps/api && bun run build
 
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot
 WORKDIR /app
 COPY --from=build /src/apps/api/dist/presidente-api ./
 COPY --from=build /src/packages/db/drizzle ./drizzle

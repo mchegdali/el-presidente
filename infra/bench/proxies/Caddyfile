@@ -1,0 +1,23 @@
+# Banc : TLS 1.3, HTTP/1.1 + HTTP/2 (pas de HTTP/3, les bots passent par TCP), pas de
+# journal d'accès (désactivé par défaut), API par socket Unix.
+{
+	admin off
+	auto_https off
+	servers {
+		protocols h1 h2
+	}
+}
+
+:443 {
+	# X25519 puis P-256 comme les autres proxys (Go proposerait d'abord X25519MLKEM768).
+	# Les suites TLS 1.3 ne sont pas réglables en Go (AES-128-GCM en tête avec AES-NI).
+	tls /certs/bench.crt /certs/bench.key {
+		protocols tls1.3
+		curves x25519 secp256r1
+	}
+	respond /metrics 404
+	reverse_proxy unix//run/presidente/api.sock {
+		header_up X-Real-IP {remote_host}
+		header_up -X-Forwarded-For
+	}
+}

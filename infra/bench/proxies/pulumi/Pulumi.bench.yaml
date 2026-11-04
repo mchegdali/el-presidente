@@ -1,0 +1,4 @@
+# Aucun secret ici : le jeton Hetzner vient de l'environnement ESC
+# (pulumiConfig.hcloud:token, secret).
+environment:
+  - el-presidente/bench

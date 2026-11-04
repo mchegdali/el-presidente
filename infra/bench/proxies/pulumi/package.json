@@ -1,0 +1,19 @@
+{
+  "name": "@el-presidente/bench-infra",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pulumi/hcloud": "1.43.3",
+    "@pulumi/pulumi": "3.272.0"
+  },
+  "devDependencies": {
+    "@el-presidente/config": "workspace:*",
+    "@types/bun": "1.4.3",
+    "typescript": "5.9.3"
+  }
+}

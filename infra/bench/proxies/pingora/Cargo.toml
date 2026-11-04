@@ -1,0 +1,17 @@
+# Proxy minimal sur Pingora pour le banc (comparaison avec HAProxy, Caddy, nginx).
+# Exception à la règle des 7 jours (décision du 04/11/2026) : Pingora 0.9.1 (03/11/2026).
+# 0.9.0 est inutilisable avec Tokio ≥ 1.54 : panique sur un BufStream de capacité nulle
+# (tokio#8494), contournée par pingora-core 0.9.1.
+[package]
+name = "bench-pingora"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+pingora = { version = "=0.9.1", features = ["proxy", "openssl"] }
+async-trait = "0.1"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1

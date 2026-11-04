@@ -32,6 +32,10 @@ const { values: opt } = parseArgs({
     seconds: { type: 'string', default: '30' },
     insecure: { type: 'boolean', default: false },
     'api-pid': { type: 'string' },
+    /** Préfixe des noms de bots : plusieurs générateurs en parallèle sans collision. */
+    shard: { type: 'string', default: '' },
+    /** Fichier binaire (Float64 : heure d'envoi epoch ms, latence ms) pour fusionner des générateurs. */
+    dump: { type: 'string' },
   },
 });
 
@@ -44,6 +48,8 @@ const DURATION_MS = Number(opt.seconds) * 1000;
 const tls = opt.insecure ? { rejectUnauthorized: false } : undefined;
 
 const latencies: number[] = [];
+/** Heure d'envoi prévue (epoch ms) de chaque coup mesuré, alignée sur `latencies`. */
+const sentAt: number[] = [];
 let moves = 0;
 let rejects = 0;
 let errors = 0;
@@ -114,6 +120,7 @@ class Bot {
       this.state = { ...this.state, version: msg.version, status, game: next.view, hand: next.hand };
       if (msg.seat === this.state.me && this.pendingSince !== null) {
         latencies.push(performance.now() - this.pendingSince);
+        sentAt.push(performance.timeOrigin + this.pendingSince);
         this.pendingSince = null;
         moves++;
       }
@@ -145,17 +152,27 @@ class Bot {
   }
 }
 
-async function runTable(index: number, stopAt: number) {
+/**
+ * Mise en place d'une table (connexions de test, création, entrées, WebSockets) ; la partie
+ * ne démarre qu'avec `start`, une fois toutes les tables prêtes : la durée mesurée ne
+ * comprend pas la mise en place, qui dure plusieurs dizaines de secondes pour 2 500 tables.
+ */
+async function setupTable(index: number) {
   const bots: Bot[] = [];
   for (let i = 0; i < PLAYERS; i++) {
-    const { cookie } = await post<{ cookie: string }>('/test/login', null, { name: `B${index}-${i}` });
-    bots.push(new Bot(`B${index}-${i}`, cookie));
+    const name = `${opt.shard}B${index}-${i}`;
+    const { cookie } = await post<{ cookie: string }>('/test/login', null, { name });
+    bots.push(new Bot(name, cookie));
   }
   const host = bots[0]!;
   const { code } = await post<{ code: string }>('/tables', host.cookie, {});
   for (const b of bots.slice(1)) await post(`/tables/${code}/join`, b.cookie);
   await Promise.all(bots.map((b) => b.connect(code)));
+  return { bots, start: (stopAt: number) => playTable(bots, code, stopAt) };
+}
 
+async function playTable(bots: Bot[], code: string, stopAt: number) {
+  const host = bots[0]!;
   // Manche relancée par l'hôte quand la précédente est finie, une seule fois par manche.
   let startedRound = 0;
   const tick = () => {
@@ -186,7 +203,6 @@ async function runTable(index: number, stopAt: number) {
   };
   for (const b of bots) b.onChange = tick;
   await post(`/tables/${code}/rounds`, host.cookie).catch((e: Error) => httpErrors.set(e.message.slice(0, 120), 1));
-  return bots;
 }
 
 function cpuSecondsOf(pid: string | undefined): number | null {
@@ -202,19 +218,28 @@ function cpuSecondsOf(pid: string | undefined): number | null {
 const pct = (sorted: number[], p: number) =>
   sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))] ?? NaN;
 
+const tables = await Promise.all(Array.from({ length: TABLES }, (_, i) => setupTable(i)));
 const started = performance.now();
 const stopAt = started + DURATION_MS;
 const apiCpuBefore = cpuSecondsOf(opt['api-pid']);
 const genCpuBefore = process.cpuUsage();
-const all = await Promise.all(Array.from({ length: TABLES }, (_, i) => runTable(i, stopAt)));
+await Promise.all(tables.map((t) => t.start(stopAt)));
 await Bun.sleep(Math.max(0, stopAt - performance.now()) + 500);
-for (const bots of all)
+for (const { bots } of tables)
   for (const b of bots) {
     b.closing = true;
     b.ws.close();
   }
 
 const elapsed = (performance.now() - started) / 1000;
+if (opt.dump) {
+  const buf = new Float64Array(latencies.length * 2);
+  for (let i = 0; i < latencies.length; i++) {
+    buf[2 * i] = sentAt[i]!;
+    buf[2 * i + 1] = latencies[i]!;
+  }
+  await Bun.write(opt.dump, buf);
+}
 const sorted = latencies.sort((a, b) => a - b);
 const apiCpu = cpuSecondsOf(opt['api-pid']);
 const gen = process.cpuUsage(genCpuBefore);

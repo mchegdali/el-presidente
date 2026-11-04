@@ -1,0 +1,124 @@
+# Banc des proxys sur le serveur testé : Postgres + API + un proxy à la fois.
+# Tout en réseau hôte (comme la cible) ; sockets Unix partagées par /srv/bench/run.
+#   docker compose up -d pg && docker compose run --rm api migrate
+#   docker compose up -d api haproxy        (ou caddy, nginx ; api-direct seul pour la référence)
+name: bench
+
+x-shared: &shared
+  network_mode: host
+  restart: 'no'
+  ulimits:
+    nofile: { soft: 65536, hard: 65536 }
+  logging:
+    driver: local
+
+x-api-env: &api-env
+  NODE_ENV: development
+  LOG_LEVEL: warn
+  DATABASE_URL: postgres://app@localhost/presidente?host=/var/run/postgresql
+  API_ORIGIN: https://10.0.0.3
+  WEB_ORIGIN: https://bench.example
+  BETTER_AUTH_SECRET: bench-bench-bench-bench-bench-bench-bench-bench
+  GOOGLE_CLIENT_ID: bench
+  GOOGLE_CLIENT_SECRET: bench
+  ENABLE_TEST_LOGIN: 'true'
+
+services:
+  pg:
+    <<: *shared
+    image: postgres:18.6-trixie@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    shm_size: 512m
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_DB: presidente
+      POSTGRES_HOST_AUTH_METHOD: trust
+    # Socket Unix seulement ; réglages essentiels de la configuration cible.
+    command:
+      [
+        postgres,
+        -c,
+        'listen_addresses=',
+        -c,
+        max_connections=20,
+        -c,
+        shared_buffers=512MB,
+        -c,
+        effective_cache_size=1GB,
+        -c,
+        jit=off,
+        -c,
+        wal_compression=zstd,
+        -c,
+        max_wal_size=2GB,
+        -c,
+        checkpoint_timeout=15min,
+      ]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - /srv/bench/run/pg:/var/run/postgresql
+    healthcheck:
+      test: [CMD, pg_isready, -h, /var/run/postgresql, -U, app]
+      interval: 2s
+      retries: 30
+
+  api:
+    <<: *shared
+    image: bench-api
+    # Réseau hôte pour la construction : le serveur est en IPv6 seulement, le pont Docker non.
+    build: { context: ../../.., dockerfile: infra/api.Dockerfile, network: host }
+    environment:
+      <<: *api-env
+      LISTEN_UNIX: /run/presidente/api.sock
+      TRUST_PROXY: 'true'
+    volumes:
+      - /srv/bench/run/api:/run/presidente
+      - /srv/bench/run/pg:/var/run/postgresql
+    stop_grace_period: 20s
+
+  # Référence sans proxy : l'API directement en TCP, sans TLS.
+  api-direct:
+    <<: *shared
+    image: bench-api
+    environment:
+      <<: *api-env
+      LISTEN_UNIX: ''
+      PORT: '4000'
+    volumes:
+      - /srv/bench/run/pg:/var/run/postgresql
+    stop_grace_period: 20s
+
+  haproxy:
+    <<: *shared
+    image: haproxy:3.4.7@sha256:64378482a9ad183747a0416fcaaae7f5f46bd7dac9ddd6805aa5db806a2a83ad
+    user: root
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./certs:/certs:ro
+      - /srv/bench/run/api:/run/presidente
+
+  caddy:
+    <<: *shared
+    image: caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - /srv/bench/run/api:/run/presidente
+
+  nginx:
+    <<: *shared
+    image: nginx:1.30.6-trixie@sha256:66b50d24288dba67f3d000b31223daefc4868c58d29aaacb6a4ff9771597b5eb
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/certs:ro
+      - /srv/bench/run/api:/run/presidente
+
+  pingora:
+    <<: *shared
+    image: bench-pingora
+    build: { context: ./pingora, network: host }
+    volumes:
+      - ./certs:/certs:ro
+      - /srv/bench/run/api:/run/presidente
+
+volumes:
+  pgdata:

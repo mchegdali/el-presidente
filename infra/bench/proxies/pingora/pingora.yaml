@@ -1,0 +1,4 @@
+# 2 threads de travail, comme HAProxy (nbthread 2), nginx (2 workers) et Caddy (GOMAXPROCS 2).
+version: 1
+threads: 2
+work_stealing: true

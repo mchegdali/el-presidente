@@ -156,3 +156,4 @@ apps/api/dist
 types
 test-results
 playwright-report
+infra/bench/proxies/certs
