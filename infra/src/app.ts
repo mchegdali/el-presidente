@@ -141,7 +141,7 @@ const apiEnv = pulumi
       ? [
           `VAPID_PUBLIC_KEY=${config.vapidPublicKey}`,
           `VAPID_PRIVATE_KEY=${vapidPrivate}`,
-          `VAPID_SUBJECT=mailto:${config.acmeEmail}`,
+          `VAPID_SUBJECT=${config.acmeEmail ? `mailto:${config.acmeEmail}` : `https://${webDomain}`}`,
         ]
       : []),
   ]);
@@ -188,7 +188,7 @@ new docker.Container(
     tmpfs: { ...hardened.tmpfs, '/config': 'rw,noexec,nosuid,size=8m' },
     envs: [
       `API_DOMAIN=${apiDomain}`,
-      `ACME_EMAIL=${config.acmeEmail}`,
+      ...(config.acmeEmail ? [`ACME_EMAIL_OPTION=email ${config.acmeEmail}`] : []),
       ...(config.acmeCa ? [`ACME_CA=${config.acmeCa}`] : []),
     ],
     mounts: [bind('/data/caddy', '/data'), bind('/run/presidente', '/run/presidente')],

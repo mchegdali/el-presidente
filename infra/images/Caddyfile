@@ -1,16 +1,16 @@
 # Caddy devant l'API : TLS automatique (Let's Encrypt), HTTP/1.1, HTTP/2 et HTTP/3,
 # WebSocket, API par socket Unix. Valeurs non secrètes fournies par l'environnement :
-#   API_DOMAIN  nom servi (ex. api.el-presidente.chegdali.fr)
-#   ACME_EMAIL  contact Let's Encrypt
-#   ACME_CA     annuaire ACME (par défaut production ; staging pour une pile de test)
-
+#   API_DOMAIN         nom servi (ex. api.el-presidente.chegdali.fr)
+#   ACME_EMAIL_OPTION  « email <adresse> » (contact Let's Encrypt) ou vide : facultatif
+#   ACME_CA            annuaire ACME (par défaut production ; staging pour une pile de test)
 {
 	# Pas d'API d'administration : la configuration ne change qu'en redéployant l'image.
 	admin off
 	persist_config off
 	# Jamais d'installation de l'autorité locale dans le système (image sans outils).
 	skip_install_trust
-	email {$ACME_EMAIL}
+	# Remplacée avant l'analyse du Caddyfile : une ligne vide sans contact.
+	{$ACME_EMAIL_OPTION}
 	acme_ca {$ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
 	servers {
 		protocols h1 h2 h3

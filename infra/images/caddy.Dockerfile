@@ -8,6 +8,8 @@
 FROM caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e AS caddy
 
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329
+# Relie le paquet GHCR au dépôt (droits de la CI sur les versions suivantes).
+LABEL org.opencontainers.image.source="https://github.com/mchegdali/el-presidente"
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY Caddyfile /etc/caddy/Caddyfile
 # Certificats et état ACME sur le volume (/data/caddy monté sur /data) : conservés quand le

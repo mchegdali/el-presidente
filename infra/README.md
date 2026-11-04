@@ -81,15 +81,28 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
    limité à la branche `main`.
 3. **Google OAuth** : client « Application Web », redirection autorisée
    `https://api.el-presidente.chegdali.fr/api/auth/callback/google`.
-4. **`Pulumi.prod.yaml`** : renseigner `acmeEmail`.
-5. **Premier déploiement**, depuis un poste (`GHCR_TOKEN` : jeton `read:packages`) :
+4. **`Pulumi.prod.yaml`** : `acmeEmail` facultatif (contact Let's Encrypt et VAPID).
+5. **Jeton GHCR du poste** : la CI publie les images avec son `GITHUB_TOKEN`, mais le
+   premier déploiement part d'un poste, avant toute fusion dans `main`. Jeton GitHub
+   classique (`write:packages`, expiration courte), dans un environnement ESC à part, que
+   la pile n'importe pas (la CI garde son propre jeton) :
+
+   ```yaml
+   # environnement ESC el-presidente/ghcr
+   values:
+     environmentVariables:
+       GHCR_TOKEN: { fn::secret: ghp_… }
+   ```
+
+6. **Premier déploiement**, depuis le poste (images construites et publiées par empreinte,
+   puis `pulumi up` avec `GHCR_TOKEN` dans l'environnement) :
 
    ```sh
    cd infra
-   pulumi up --stack prod          # tout, sauf Litestream (avertissement : pas encore de réplication)
+   pulumi env run mchegdali/el-presidente/ghcr -- pulumi up --stack prod   # tout, sauf Litestream (avertissement : pas encore de réplication)
    ssh-keyscan -p 23 <serveur de la Storage Box>    # comparer à l'empreinte de la console Hetzner
    pulumi config set --stack prod storageBoxHostKey "ssh-ed25519 AAAA…"
-   pulumi up --stack prod          # ajoute la restauration (sans effet : la base existe) et Litestream
+   pulumi env run mchegdali/el-presidente/ghcr -- pulumi up --stack prod   # ajoute la restauration (sans effet : la base existe) et Litestream
    ```
 
    Le serveur de la Storage Box est dans la console Hetzner (sous-compte `litestream`).

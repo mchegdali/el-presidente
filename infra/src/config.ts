@@ -20,7 +20,8 @@ export const config = {
   zone: cfg.require('zone'),
   apiSubdomain: cfg.require('apiSubdomain'),
   webSubdomain: cfg.require('webSubdomain'),
-  acmeEmail: cfg.require('acmeEmail'),
+  /** Contact Let's Encrypt et VAPID, facultatif (sinon : compte ACME sans adresse, VAPID par l'URL du site). */
+  acmeEmail: cfg.get('acmeEmail'),
   /** Annuaire ACME : production par défaut, staging pour une pile de test. */
   acmeCa: cfg.get('acmeCa'),
   /**

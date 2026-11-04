@@ -5,7 +5,7 @@ config:
   el-presidente:zone: chegdali.fr
   el-presidente:apiSubdomain: api.el-presidente
   el-presidente:webSubdomain: el-presidente
-  # Contact Let's Encrypt (et des notifications push) : à renseigner.
+  # Contact Let's Encrypt et des notifications push, facultatif.
   # el-presidente:acmeEmail: …
   el-presidente:vercelTeamId: team_RP773hLkADg8fyyPEgpLB6DQ
   # Images publiées par la CI (remplacées à chaque déploiement par leur empreinte).
