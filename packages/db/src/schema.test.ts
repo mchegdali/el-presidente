@@ -1,78 +1,103 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { eq, sql } from 'drizzle-orm';
-import { games, lobbies, messages, players, user } from './schema';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { eq } from 'drizzle-orm';
+import { createDatabase } from './index';
+import { lobbies, messages, players, user } from './schema';
 import { createTestDatabase } from './testing';
 
-const rows = (x: unknown) => ((x as { rows?: { n: number }[] }).rows ?? (x as { n: number }[]))[0]!.n;
-
-let t: Awaited<ReturnType<typeof createTestDatabase>>;
-beforeAll(async () => {
-  t = await createTestDatabase();
-});
+const t = createTestDatabase();
 afterAll(() => t.close());
 
-const failsWith = async (p: Promise<unknown>, pattern: RegExp) => {
-  let error: unknown;
-  try {
-    await p;
-  } catch (e) {
-    error = e;
-  }
-  expect(
-    String((error as Error)?.message ?? error) + String((error as { cause?: Error })?.cause?.message ?? ''),
-  ).toMatch(pattern);
-};
+const failsWith = (run: () => unknown, pattern: RegExp) => expect(run).toThrow(pattern);
 
-describe('schéma (PGlite + migrations réelles)', () => {
+describe('schéma (SQLite + migrations réelles)', () => {
   test('tables, contraintes et cascade', async () => {
     const { db } = t;
-    await db.insert(user).values([
-      { id: 'u1', name: 'Ana', email: 'ana@example.com' },
-      { id: 'u2', name: 'Beto', email: 'beto@example.com' },
-    ]);
-    const [lobby] = await db.insert(lobbies).values({ code: 'ABCDE', hostId: 'u1' }).returning();
-    await db.insert(players).values({ lobbyId: lobby!.id, userId: 'u1', seat: 0, name: 'Ana' });
+    db.insert(user)
+      .values([
+        { id: 'u1', name: 'Ana', email: 'ana@example.com' },
+        { id: 'u2', name: 'Beto', email: 'beto@example.com' },
+      ])
+      .run();
+    const lobby = db.insert(lobbies).values({ code: 'ABCDE', hostId: 'u1' }).returning().get();
+    expect(lobby.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(lobby.createdAt).toBeInstanceOf(Date);
+    expect(Math.abs(lobby.createdAt.getTime() - Date.now())).toBeLessThan(5000);
+    db.insert(players).values({ lobbyId: lobby.id, userId: 'u1', seat: 0, name: 'Ana' }).run();
 
     // Nom unique à la table, sans tenir compte de la casse ; siège unique.
-    await failsWith(
-      db.insert(players).values({ lobbyId: lobby!.id, userId: 'u2', seat: 1, name: 'ANA' }),
-      /players_lobby_name_key/,
+    failsWith(
+      () => db.insert(players).values({ lobbyId: lobby.id, userId: 'u2', seat: 1, name: 'ANA' }).run(),
+      /players_lobby_name_key|UNIQUE constraint failed: index/,
     );
-    await failsWith(
-      db.insert(players).values({ lobbyId: lobby!.id, userId: 'u2', seat: 0, name: 'Beto' }),
-      /players_lobby_seat_key/,
+    failsWith(
+      () => db.insert(players).values({ lobbyId: lobby.id, userId: 'u2', seat: 0, name: 'Beto' }).run(),
+      /UNIQUE constraint failed: players\.lobby_id, players\.seat/,
     );
-    await failsWith(db.update(lobbies).set({ turnLimit: 5 }), /lobbies_turn_limit_check/);
-    await failsWith(
-      db.insert(messages).values({ lobbyId: lobby!.id, userId: 'u1', name: 'Ana', body: 'x'.repeat(301) }),
+    failsWith(() => db.update(lobbies).set({ turnLimit: 5 }).run(), /lobbies_turn_limit_check/);
+    failsWith(
+      () =>
+        db
+          .insert(messages)
+          .values({ lobbyId: lobby.id, userId: 'u1', name: 'Ana', body: 'x'.repeat(301) })
+          .run(),
       /messages_body_check/,
     );
+    // Clés étrangères actives (désactivées par défaut dans SQLite).
+    failsWith(
+      () => db.insert(players).values({ lobbyId: 'inconnu', userId: 'u2', seat: 1, name: 'Beto' }).run(),
+      /FOREIGN KEY constraint failed/,
+    );
 
-    const [m] = await db
+    const m = db
       .insert(messages)
-      .values({ lobbyId: lobby!.id, userId: 'u1', name: 'Ana', body: '¡Hola!', ip: '203.0.113.7' })
-      .returning();
-    expect(m!.ip).toBe('203.0.113.7');
+      .values({ lobbyId: lobby.id, userId: 'u1', name: 'Ana', body: '¡Hola!', ip: '203.0.113.7' })
+      .returning()
+      .get();
+    expect(m.ip).toBe('203.0.113.7');
 
-    await db.delete(lobbies).where(eq(lobbies.id, lobby!.id));
+    db.delete(lobbies).where(eq(lobbies.id, lobby.id)).run();
     expect(await db.$count(players)).toBe(0);
     expect(await db.$count(messages)).toBe(0);
   });
 
-  test('réglages de stockage de la table des manches', async () => {
-    const r = await t.query<{ reloptions: string[] }>(`select reloptions from pg_class where relname = 'games'`);
-    expect(r[0]!.reloptions).toContain('fillfactor=70');
-    expect(await t.db.$count(games)).toBe(0);
+  test("une erreur au milieu d'une transaction n'en laisse aucune trace", () => {
+    const { db } = t;
+    const lobby = db.insert(lobbies).values({ code: 'ROLLB', hostId: 'u1' }).returning().get();
+    expect(() =>
+      db.transaction((tx) => {
+        tx.insert(players).values({ lobbyId: lobby.id, userId: 'u2', seat: 0, name: 'Beto' }).run();
+        tx.update(lobbies).set({ hostId: 'u2' }).where(eq(lobbies.id, lobby.id)).run();
+        throw new Error('panne simulée');
+      }),
+    ).toThrow('panne simulée');
+    expect(db.select().from(players).where(eq(players.lobbyId, lobby.id)).all()).toEqual([]);
+    expect(db.select().from(lobbies).where(eq(lobbies.id, lobby.id)).get()?.hostId).toBe('u1');
   });
 
-  test('aucune fonction ni trigger applicatif dans la base', async () => {
-    const r = await t.db.execute<{ n: number }>(sql`
-      select count(*)::int as n from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname not in ('pg_catalog', 'information_schema', 'drizzle')`);
-    const triggers = await t.db.execute<{ n: number }>(
-      sql`select count(*)::int as n from pg_trigger where not tgisinternal`,
-    );
-    expect(rows(r)).toBe(0);
-    expect(rows(triggers)).toBe(0);
+  test('aucun trigger ni vue dans la base', () => {
+    const r = t.sqlite.query(`select count(*) as n from sqlite_schema where type in ('trigger', 'view')`).get() as {
+      n: number;
+    };
+    expect(r.n).toBe(0);
+  });
+});
+
+describe('réglages de connexion', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'presidente-db-'));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  test('fichier : WAL, synchronous NORMAL, clés étrangères, attente sur verrou', () => {
+    const file = createDatabase(join(dir, 'test.db'));
+    const pragma = (name: string) => Object.values(file.sqlite.query(`PRAGMA ${name}`).get() as object)[0];
+    expect(pragma('journal_mode')).toBe('wal');
+    expect(pragma('synchronous')).toBe(1); // NORMAL
+    expect(pragma('foreign_keys')).toBe(1);
+    expect(pragma('busy_timeout')).toBe(5000);
+    file.close();
+    // Réouverture : les migrations déjà appliquées ne sont pas rejouées.
+    createDatabase(join(dir, 'test.db')).close();
   });
 });

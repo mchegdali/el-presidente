@@ -17,18 +17,19 @@ export async function createTable(
   const name = cleanName(rawName ?? defaultName(user.name));
   if (name.isErr()) return Result.err(name.error);
 
-  return Result.tryPromise({
-    try: async () => {
+  return Result.try({
+    try: () => {
       for (;;) {
         const code = Array.from({ length: 5 }, () => ALPHABET[deps.rng(ALPHABET.length)]).join('');
-        const created = await deps.db.transaction(async (tx) => {
-          const [lobby] = await tx
+        const created = deps.db.transaction((tx) => {
+          const lobby = tx
             .insert(lobbies)
             .values({ code, hostId: user.id })
             .onConflictDoNothing({ target: lobbies.code })
-            .returning();
+            .returning()
+            .get();
           if (lobby === undefined) return null;
-          await tx.insert(players).values({ lobbyId: lobby.id, userId: user.id, seat: 0, name: name.value });
+          tx.insert(players).values({ lobbyId: lobby.id, userId: user.id, seat: 0, name: name.value }).run();
           return lobby;
         });
         if (created === null) continue; // code déjà pris : on en tire un autre

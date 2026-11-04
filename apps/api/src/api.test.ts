@@ -236,7 +236,7 @@ describe('temps réel', () => {
     expect((await pc.request({ op: 'play', req: 0, cards: [parseCard(ps.hand![0]!)] })).op).toBe('ack');
     c.close();
     pc.close();
-    await s.deps.writer.flush();
+    s.deps.writer.flush();
 
     const before = s.deps.tables.cached(t.code)!;
     const hands = Array.from({ length: 3 }, (_, i) => cardsOf(before.game!.hands, i));
@@ -377,7 +377,7 @@ describe('chat et emotes', () => {
     at: z.number(),
   });
 
-  test('messages, historique (JSON construit par Postgres), limite de débit, membres seulement', async () => {
+  test('messages, historique (JSON construit par SQLite), limite de débit, membres seulement', async () => {
     const t = await setupTable(3);
     const sockets = await Promise.all(t.users.map((u) => u.connect(t.code)));
     await Promise.all(sockets.map((c) => c.snapshot()));

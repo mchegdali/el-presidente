@@ -2,7 +2,8 @@
 // plusieurs requêtes arrivent ensemble), éviction des tables inactives sans connexion.
 
 import { fromSnapshot } from '@el-presidente/game';
-import { schema, type Database } from '@el-presidente/db';
+import { schema } from '@el-presidente/db';
+import type { Database } from '@el-presidente/db/types';
 import { Result } from 'better-result';
 import { asc, eq, max } from '@el-presidente/db';
 import { dbError, tableNotFound, type DbError, type NotFound } from '../../../shared/errors';

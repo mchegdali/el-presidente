@@ -157,3 +157,8 @@ types
 test-results
 playwright-report
 infra/bench/proxies/certs
+
+# Bases SQLite locales (développement, tests)
+*.db
+*.db-wal
+*.db-shm

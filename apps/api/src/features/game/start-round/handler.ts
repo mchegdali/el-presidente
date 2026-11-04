@@ -34,18 +34,18 @@ export async function startRound(deps: Deps, table: Table, user: CurrentUser) {
 
     // La nouvelle manche est écrite avant d'être visible : pas de manche fantôme.
     deps.writer.drop(table.id);
-    const saved = await Result.tryPromise({
+    const saved = Result.try({
       try: () =>
-        deps.db.transaction(async (tx) => {
+        deps.db.transaction((tx) => {
           const row = { roundNo: state.roundNo, version, state: toSnapshot(state), deadlineAt: deadline };
-          await tx
-            .insert(games)
+          tx.insert(games)
             .values({ lobbyId: table.id, ...row })
-            .onConflictDoUpdate({ target: games.lobbyId, set: row });
-          await tx
-            .update(lobbies)
+            .onConflictDoUpdate({ target: games.lobbyId, set: row })
+            .run();
+          tx.update(lobbies)
             .set({ status, roundNo: state.roundNo, notice: null })
-            .where(eq(lobbies.id, table.id));
+            .where(eq(lobbies.id, table.id))
+            .run();
         }),
       catch: dbError,
     });

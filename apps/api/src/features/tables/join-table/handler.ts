@@ -36,11 +36,11 @@ export async function joinTable(deps: Deps, code: string, user: CurrentUser, raw
 
     const dbSeat = table.players.reduce((m, p) => Math.max(m, p.dbSeat + 1), 0);
     const host = table.hostId ?? user.id;
-    const saved = await Result.tryPromise({
+    const saved = Result.try({
       try: () =>
-        deps.db.transaction(async (tx) => {
-          await tx.insert(players).values({ lobbyId: table.id, userId: user.id, seat: dbSeat, name: name.value });
-          await tx.update(lobbies).set({ hostId: host }).where(eq(lobbies.id, table.id));
+        deps.db.transaction((tx) => {
+          tx.insert(players).values({ lobbyId: table.id, userId: user.id, seat: dbSeat, name: name.value }).run();
+          tx.update(lobbies).set({ hostId: host }).where(eq(lobbies.id, table.id)).run();
         }),
       catch: dbError,
     });

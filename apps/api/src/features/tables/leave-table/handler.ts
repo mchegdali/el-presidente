@@ -26,12 +26,14 @@ export async function removePlayer(
 
   const rest = table.players.filter((_, i) => i !== seat);
   const host = table.hostId === userId ? (rest[0]?.userId ?? null) : table.hostId;
-  const saved = await Result.tryPromise({
+  const saved = Result.try({
     try: () =>
-      deps.db.transaction(async (tx) => {
-        await tx.delete(players).where(and(eq(players.lobbyId, table.id), eq(players.userId, userId)));
-        if (rest.length === 0) await tx.delete(lobbies).where(eq(lobbies.id, table.id));
-        else await tx.update(lobbies).set({ hostId: host }).where(eq(lobbies.id, table.id));
+      deps.db.transaction((tx) => {
+        tx.delete(players)
+          .where(and(eq(players.lobbyId, table.id), eq(players.userId, userId)))
+          .run();
+        if (rest.length === 0) tx.delete(lobbies).where(eq(lobbies.id, table.id)).run();
+        else tx.update(lobbies).set({ hostId: host }).where(eq(lobbies.id, table.id)).run();
       }),
     catch: dbError,
   });

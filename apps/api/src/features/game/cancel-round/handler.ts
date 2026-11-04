@@ -16,16 +16,15 @@ const { games, lobbies } = schema;
  */
 export async function dropRound(deps: Deps, table: Table, notice: string | null): Promise<Result<void, DbError>> {
   if (table.game === null && !table.roundActive) return Result.ok();
-  // Une écriture différée en vol ne doit pas recréer la ligne après sa suppression.
+  // Une écriture différée en attente ne doit pas recréer la ligne après sa suppression.
   deps.writer.drop(table.id);
-  await deps.writer.flush();
   const nextStatus = 'waiting' as const;
   const nextNotice = table.roundActive ? notice : table.notice;
-  const done = await Result.tryPromise({
+  const done = Result.try({
     try: () =>
-      deps.db.transaction(async (tx) => {
-        await tx.delete(games).where(eq(games.lobbyId, table.id));
-        await tx.update(lobbies).set({ status: nextStatus, notice: nextNotice }).where(eq(lobbies.id, table.id));
+      deps.db.transaction((tx) => {
+        tx.delete(games).where(eq(games.lobbyId, table.id)).run();
+        tx.update(lobbies).set({ status: nextStatus, notice: nextNotice }).where(eq(lobbies.id, table.id)).run();
       }),
     catch: dbError,
   });

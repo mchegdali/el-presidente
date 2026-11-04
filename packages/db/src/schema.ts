@@ -1,51 +1,46 @@
-// Schéma Postgres : uniquement des tables, contraintes et index. Aucune fonction, aucun
-// trigger : toute la logique vit dans l'API.
+// Schéma SQLite : uniquement des tables, contraintes et index. Aucun trigger : toute la
+// logique vit dans l'API.
+//
+// Correspondances avec les types de l'API :
+// - dates : entier en millisecondes depuis l'époque Unix (`Date` côté Drizzle) ;
+// - booléens : 0 / 1 ; JSON : texte (`state` des manches) ;
+// - identifiants des tables de jeu : UUID générés par l'API.
 
 import type { GameSnapshot } from '@el-presidente/game';
 import { sql } from 'drizzle-orm';
-import {
-  bigint,
-  boolean,
-  check,
-  index,
-  inet,
-  integer,
-  jsonb,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  unique,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { check, index, integer, primaryKey, sqliteTable, text, unique, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
+/** Instant courant en millisecondes, calculé par SQLite (valeur par défaut des colonnes). */
+const nowMs = sql`(cast(unixepoch('subsec') * 1000 as integer))`;
+
+const timestamp = (name: string) => integer(name, { mode: 'timestamp_ms' });
+const createdAt = () => timestamp('created_at').notNull().default(nowMs);
 const updatedAt = () =>
-  timestamp('updated_at', { withTimezone: true })
+  timestamp('updated_at')
     .notNull()
-    .defaultNow()
+    .default(nowMs)
     .$onUpdate(() => new Date());
+const uuid = (name: string) => text(name).$defaultFn(() => crypto.randomUUID());
 
 // ---------------------------------------------------------------------------
 // Authentification (tables attendues par better-auth)
 // ---------------------------------------------------------------------------
 
-export const user = pgTable('user', {
+export const user = sqliteTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').notNull().default(false),
+  emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
   image: text('image'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const session = pgTable(
+export const session = sqliteTable(
   'session',
   {
     id: text('id').primaryKey(),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
     token: text('token').notNull().unique(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -59,7 +54,7 @@ export const session = pgTable(
   (t) => [index('session_user_id_idx').on(t.userId)],
 );
 
-export const account = pgTable(
+export const account = sqliteTable(
   'account',
   {
     id: text('id').primaryKey(),
@@ -71,8 +66,8 @@ export const account = pgTable(
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
     idToken: text('id_token'),
-    accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
-    refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+    accessTokenExpiresAt: timestamp('access_token_expires_at'),
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
     scope: text('scope'),
     password: text('password'),
     createdAt: createdAt(),
@@ -81,13 +76,13 @@ export const account = pgTable(
   (t) => [index('account_user_id_idx').on(t.userId)],
 );
 
-export const verification = pgTable(
+export const verification = sqliteTable(
   'verification',
   {
     id: text('id').primaryKey(),
     identifier: text('identifier').notNull(),
     value: text('value').notNull(),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -101,10 +96,10 @@ export const verification = pgTable(
 export const LOBBY_STATUSES = ['waiting', 'exchange', 'playing', 'finished'] as const;
 export const ROLES = ['president', 'vice_president', 'neutral', 'vice_trou', 'trou'] as const;
 
-export const lobbies = pgTable(
+export const lobbies = sqliteTable(
   'lobbies',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey(),
     code: text('code').notNull().unique(),
     hostId: text('host_id').references(() => user.id, { onDelete: 'set null' }),
     status: text('status', { enum: LOBBY_STATUSES }).notNull().default('waiting'),
@@ -122,10 +117,10 @@ export const lobbies = pgTable(
   ],
 );
 
-export const players = pgTable(
+export const players = sqliteTable(
   'players',
   {
-    lobbyId: uuid('lobby_id')
+    lobbyId: text('lobby_id')
       .notNull()
       .references(() => lobbies.id, { onDelete: 'cascade' }),
     userId: text('user_id')
@@ -139,6 +134,8 @@ export const players = pgTable(
   (t) => [
     primaryKey({ columns: [t.lobbyId, t.userId] }),
     unique('players_lobby_seat_key').on(t.lobbyId, t.seat),
+    // `lower` de SQLite ne replie que l'ASCII : la vérification complète (toLowerCase)
+    // est faite par l'API, sous le verrou de la table ; l'index n'est qu'un garde-fou.
     uniqueIndex('players_lobby_name_key').on(t.lobbyId, sql`lower(${t.name})`),
     index('players_user_id_idx').on(t.userId),
     check('players_seat_check', sql`${t.seat} >= 0`),
@@ -150,36 +147,33 @@ export const players = pgTable(
   ],
 );
 
-/**
- * Manche en cours (ou dernière terminée) d'une table. Réécrite à chaque coup : aucune
- * colonne indexée n'y change, et le fillfactor laisse de la place dans la page, d'où des
- * mises à jour HOT (sans toucher aux index). Voir la migration 0001.
- */
-export const games = pgTable('games', {
-  lobbyId: uuid('lobby_id')
+/** Manche en cours (ou dernière terminée) d'une table, réécrite par l'écriture groupée. */
+export const games = sqliteTable('games', {
+  lobbyId: text('lobby_id')
     .primaryKey()
     .references(() => lobbies.id, { onDelete: 'cascade' }),
   roundNo: integer('round_no').notNull(),
   /** Version de la table au moment de l'écriture (garde-fou contre les écritures en retard). */
-  version: bigint('version', { mode: 'number' }).notNull(),
-  state: jsonb('state').$type<GameSnapshot>().notNull(),
+  version: integer('version').notNull(),
+  state: text('state', { mode: 'json' }).$type<GameSnapshot>().notNull(),
   /** Échéance de la passe automatique, null si désactivée ou sans objet. */
-  deadlineAt: timestamp('deadline_at', { withTimezone: true }),
+  deadlineAt: timestamp('deadline_at'),
   updatedAt: updatedAt(),
 });
 
-export const messages = pgTable(
+export const messages = sqliteTable(
   'messages',
   {
-    id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-    lobbyId: uuid('lobby_id')
+    // AUTOINCREMENT : un identifiant n'est jamais réutilisé (curseur `after` des clients).
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    lobbyId: text('lobby_id')
       .notNull()
       .references(() => lobbies.id, { onDelete: 'cascade' }),
     userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
     name: text('name').notNull(),
     body: text('body').notNull(),
     /** Adresse de l'auteur (LCEN). */
-    ip: inet('ip'),
+    ip: text('ip'),
     createdAt: createdAt(),
   },
   (t) => [
@@ -189,11 +183,11 @@ export const messages = pgTable(
   ],
 );
 
-export const messageReports = pgTable(
+export const messageReports = sqliteTable(
   'message_reports',
   {
-    id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-    messageId: bigint('message_id', { mode: 'number' })
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    messageId: integer('message_id')
       .notNull()
       .references(() => messages.id, { onDelete: 'cascade' }),
     reporterId: text('reporter_id')
@@ -208,7 +202,7 @@ export const messageReports = pgTable(
   ],
 );
 
-export const pushSubscriptions = pgTable(
+export const pushSubscriptions = sqliteTable(
   'push_subscriptions',
   {
     endpoint: text('endpoint').primaryKey(),

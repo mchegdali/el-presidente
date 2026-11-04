@@ -6,7 +6,7 @@ import { dbError, notMember, type AppError } from '../../../shared/errors';
 import type { CurrentUser } from '../../auth/session';
 
 /**
- * Les 100 derniers messages après `after`, en JSON construit par Postgres : le corps est
+ * Les 100 derniers messages après `after`, en JSON construit par SQLite : le corps est
  * renvoyé tel quel, sans parse ni re-sérialisation côté API.
  */
 export async function listMessagesJson(
@@ -19,13 +19,14 @@ export async function listMessagesJson(
   if (found.isErr()) return Result.err(found.error);
   const table = found.value;
   if (table.seatOf(user.id) < 0) return Result.err(notMember());
-  const rows = await Result.tryPromise({
+  // `created_at` est déjà en millisecondes. `json_group_array` renvoie '[]' sans ligne.
+  // En SQL brut, `get` de bun-sqlite renvoie la ligne sous forme de tableau de valeurs.
+  const row = Result.try({
     try: () =>
-      deps.db.execute<{ body: string }>(sql`
-        select coalesce(json_agg(json_build_object(
-          'id', m.id, 'p', m.user_id, 'name', m.name, 'body', m.body,
-          'at', (extract(epoch from m.created_at) * 1000)::bigint
-        ) order by m.id), '[]'::json)::text as body
+      deps.db.get<[body: string]>(sql`
+        select json_group_array(json_object(
+          'id', m.id, 'p', m.user_id, 'name', m.name, 'body', m.body, 'at', m.created_at
+        ) order by m.id) as body
         from (
           select id, user_id, name, body, created_at from messages
           where lobby_id = ${table.id} and id > ${after}
@@ -33,11 +34,8 @@ export async function listMessagesJson(
         ) m`),
     catch: dbError,
   });
-  if (rows.isErr()) return Result.err(rows.error);
-  const first =
-    (rows.value as unknown as { rows?: { body: string }[] }).rows?.[0] ??
-    (rows.value as unknown as { body: string }[])[0];
-  return Result.ok(first?.body ?? '[]');
+  if (row.isErr()) return Result.err(row.error);
+  return Result.ok(row.value?.[0] ?? '[]');
 }
 
 export type MessageList = ChatMessage[];

@@ -9,7 +9,7 @@ import { chatKey, mergeMessages } from './keys';
 import { mentions } from './mentions';
 
 /**
- * Messages de la table : l'historique est chargé une fois (JSON construit par Postgres),
+ * Messages de la table : l'historique est chargé une fois (JSON construit par SQLite),
  * puis les nouveaux arrivent par la socket et sont fusionnés dans le même cache.
  */
 export function useChat(): ChatMessage[] {

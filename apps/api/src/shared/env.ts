@@ -3,7 +3,8 @@ import { z } from 'zod';
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    DATABASE_URL: z.string().min(1),
+    /** Fichier SQLite (créé s'il n'existe pas ; migrations appliquées au démarrage). */
+    DATABASE_PATH: z.string().min(1),
     /** Socket Unix d'écoute (derrière HAProxy) ; sinon PORT. */
     // Vide = absent : permet d'annuler la valeur de l'image (`LISTEN_UNIX=`) pour écouter en TCP.
     LISTEN_UNIX: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),

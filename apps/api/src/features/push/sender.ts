@@ -1,7 +1,8 @@
 // Envoi des notifications Web Push (VAPID), hors du chemin chaud : fire-and-forget,
 // abonnements expirés (404/410) supprimés.
 
-import { schema, type Database } from '@el-presidente/db';
+import { schema } from '@el-presidente/db';
+import type { Database } from '@el-presidente/db/types';
 import { eq } from '@el-presidente/db';
 import webpush from 'web-push';
 import { log } from '../../shared/logger';

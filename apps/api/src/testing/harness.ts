@@ -1,4 +1,4 @@
-// Banc de test de bout en bout : vrai serveur Bun (port libre), base PGlite avec les
+// Banc de test de bout en bout : vrai serveur Bun (port libre), base SQLite en mémoire avec les
 // vraies migrations, client `hc` typé et vrais WebSockets.
 
 import { createTestDatabase } from '@el-presidente/db/testing';
@@ -32,12 +32,12 @@ export class FakePush implements PushSender {
 }
 
 export async function startTestServer() {
-  const database = await createTestDatabase();
+  const database = createTestDatabase();
   const clock = { t: 1_800_000_000_000 };
   const push = new FakePush();
   const env: Env = {
     NODE_ENV: 'test',
-    DATABASE_URL: 'pglite://memory',
+    DATABASE_PATH: ':memory:',
     PORT: 0,
     API_ORIGIN: 'http://localhost',
     WEB_ORIGIN,
@@ -127,7 +127,7 @@ export async function startTestServer() {
     login,
     async close() {
       await running.stop();
-      await database.close();
+      database.close();
     },
   };
 }

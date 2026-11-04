@@ -1,7 +1,7 @@
 // Assemblage du processus : dépendances, horloge, HTTP + WebSocket sur un même Bun.serve.
 
 import { chmodSync } from 'node:fs';
-import type { Database } from '@el-presidente/db';
+import type { Database } from '@el-presidente/db/types';
 import { cryptoRng, type Rng } from '@el-presidente/game';
 import { createApp } from './app';
 import { createAuth } from './features/auth/auth';
@@ -110,7 +110,7 @@ export async function startServer(options: ServerOptions) {
       deps.scheduler.stop();
       shedder?.stop();
       server.stop(true);
-      await deps.writer.flush();
+      deps.writer.flush();
       log.flush();
     },
   };

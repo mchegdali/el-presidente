@@ -40,7 +40,7 @@ export function commitMove(deps: Deps, table: Table, move: Move | 'snapshot', ev
     table.status = status;
     const roles = roundRoles(g);
     if (roles !== null) roles.forEach((role, seat) => (table.players[seat]!.role = role));
-    void persistStatus(deps, table, roles !== null);
+    persistStatus(deps, table, roles !== null);
   }
 
   deps.writer.save(table);
@@ -61,16 +61,16 @@ export function commitMove(deps: Deps, table: Table, move: Move | 'snapshot', ev
   notifyTurn(deps, table);
 }
 
-async function persistStatus(deps: Deps, table: Table, withRoles: boolean): Promise<void> {
+function persistStatus(deps: Deps, table: Table, withRoles: boolean): void {
   try {
-    await deps.db.transaction(async (tx) => {
-      await tx.update(lobbies).set({ status: table.status }).where(eq(lobbies.id, table.id));
+    deps.db.transaction((tx) => {
+      tx.update(lobbies).set({ status: table.status }).where(eq(lobbies.id, table.id)).run();
       if (withRoles) {
         for (const p of table.players) {
-          await tx
-            .update(players)
+          tx.update(players)
             .set({ role: p.role })
-            .where(and(eq(players.lobbyId, table.id), eq(players.userId, p.userId)));
+            .where(and(eq(players.lobbyId, table.id), eq(players.userId, p.userId)))
+            .run();
         }
       }
     });

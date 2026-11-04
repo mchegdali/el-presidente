@@ -1,4 +1,4 @@
-import type { Database } from '@el-presidente/db';
+import type { Database } from '@el-presidente/db/types';
 import type { Rng } from '@el-presidente/game';
 import type { GameWriter } from '../features/tables/shared/game-writer';
 import type { TableStore } from '../features/tables/shared/store';

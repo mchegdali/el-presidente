@@ -1,4 +1,5 @@
-import { schema, type Database } from '@el-presidente/db';
+import { schema } from '@el-presidente/db';
+import type { Database } from '@el-presidente/db/types';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { testUtils } from 'better-auth/plugins';
@@ -12,7 +13,7 @@ export function createAuth(db: Database, env: Env) {
     basePath: '/api/auth',
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, {
-      provider: 'pg',
+      provider: 'sqlite',
       schema: {
         user: schema.user,
         session: schema.session,

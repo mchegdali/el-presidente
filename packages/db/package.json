@@ -6,22 +6,20 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "generate": "drizzle-kit generate",
-    "migrate": "bun run src/migrate.ts"
+    "generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@el-presidente/game": "workspace:*",
-    "drizzle-orm": "0.45.4",
-    "postgres": "3.4.9"
+    "drizzle-orm": "0.45.4"
   },
   "devDependencies": {
     "@el-presidente/config": "workspace:*",
-    "@electric-sql/pglite": "0.5.10",
     "@types/bun": "1.4.4",
     "drizzle-kit": "0.31.11",
     "typescript": "5.9.3"

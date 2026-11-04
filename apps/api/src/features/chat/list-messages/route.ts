@@ -15,7 +15,7 @@ export const listMessagesRoute = (deps: Deps) =>
     async (c) => {
       const json = await listMessagesJson(deps, c.req.param('code'), c.get('me'), c.req.valid('query').after);
       if (json.isErr()) return fail(c, json.error);
-      // Corps JSON construit par Postgres, envoyé tel quel (forme vérifiée par les tests).
+      // Corps JSON construit par SQLite, envoyé tel quel (forme vérifiée par les tests).
       return c.body(json.value, 200, { 'Content-Type': 'application/json' }) as unknown as TypedResponse<
         ChatMessage[],
         200,
