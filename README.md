@@ -49,7 +49,7 @@ apps/api/        Bun + Hono (Hetzner) : jeu, temps réel, auth ; base SQLite dan
 packages/game/   Règles du jeu (pures, partagées) et protocole WebSocket binaire
 packages/db/     Schéma Drizzle et migrations SQLite (tables, contraintes, index : aucun trigger)
 packages/config/ tsconfig commun
-infra/           Image de l'API, HAProxy, Postgres primaire + standby, sauvegardes, banc de charge
+infra/           Pulumi (Hetzner, OVH, Vercel), images API/Caddy/Litestream, banc de charge
 ```
 
 - **Tranches verticales** des deux côtés : `apps/api/src/features/<domaine>/<cas d'usage>/`
