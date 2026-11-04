@@ -1,0 +1,15 @@
+# Pile de production. Aucun secret ici : ils viennent de l'environnement ESC.
+environment:
+  - el-presidente/prod
+config:
+  el-presidente:zone: chegdali.fr
+  el-presidente:apiSubdomain: api.el-presidente
+  el-presidente:webSubdomain: el-presidente
+  # Contact Let's Encrypt (et des notifications push) : à renseigner.
+  # el-presidente:acmeEmail: …
+  el-presidente:vercelTeamId: team_RP773hLkADg8fyyPEgpLB6DQ
+  # Images publiées par la CI (remplacées à chaque déploiement par leur empreinte).
+  el-presidente:images:
+    api: ghcr.io/mchegdali/el-presidente-api:latest
+    caddy: ghcr.io/mchegdali/el-presidente-caddy:latest
+    litestream: ghcr.io/mchegdali/el-presidente-litestream:latest

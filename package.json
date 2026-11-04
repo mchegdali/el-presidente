@@ -3,9 +3,10 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*",
+    "infra",
     "infra/bench",
-    "infra/bench/proxies/pulumi"
+    "infra/bench/proxies/pulumi",
+    "packages/*"
   ],
   "type": "module",
   "scripts": {

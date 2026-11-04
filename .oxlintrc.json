@@ -30,5 +30,13 @@
     "**/dist/**",
     "apps/web/.next/**",
     "apps/web/next-env.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["infra/**/*.ts"],
+      "rules": {
+        "no-new": "off"
+      }
+    }
   ]
 }
