@@ -65,7 +65,7 @@ services:
     <<: *shared
     image: bench-api
     # Réseau hôte pour la construction : le serveur est en IPv6 seulement, le pont Docker non.
-    build: { context: ../../.., dockerfile: infra/api.Dockerfile, network: host }
+    build: { context: ../../.., dockerfile: infra/images/api.Dockerfile, network: host }
     environment:
       <<: *api-env
       LISTEN_UNIX: /run/presidente/api.sock

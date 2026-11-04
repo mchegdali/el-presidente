@@ -77,14 +77,14 @@ export async function startServer(options: ServerOptions) {
   };
   const server =
     env.LISTEN_UNIX !== undefined
-      ? // Socket Unix derrière HAProxy : Bun n'y applique pas de délai d'inactivité, c'est
-        // HAProxy (`timeout server`) qui ferme les connexions inutilisées.
+      ? // Socket Unix derrière Caddy : Bun n'y applique pas de délai d'inactivité, c'est
+        // Caddy (keep-alive de `reverse_proxy`) qui ferme les connexions inutilisées.
         Bun.serve<SocketContext>({ ...common, unix: env.LISTEN_UNIX })
-      : // En TCP direct : toujours au-dessus du keep-alive des clients (Vercel, HAProxy),
+      : // En TCP direct : toujours au-dessus du keep-alive des clients (Vercel, proxy),
         // pour que ce ne soit jamais l'amont qui ferme une connexion qu'il croit réutilisable.
         Bun.serve<SocketContext>({ ...common, port: options.port ?? env.PORT, idleTimeout: 75 });
   hub.publisher = server;
-  // Socket Unix partagée avec HAProxy : l'accès est contrôlé par le dossier qui la contient
+  // Socket Unix partagée avec Caddy : l'accès est contrôlé par le dossier qui la contient
   // (groupe commun aux deux conteneurs), la socket elle-même est ouverte au groupe.
   if (env.LISTEN_UNIX !== undefined) chmodSync(env.LISTEN_UNIX, 0o660);
   await restoreDeadlines(deps);

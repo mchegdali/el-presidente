@@ -20,8 +20,8 @@ cat > /etc/security/limits.d/99-loadgen.conf <<'LIM'
 * hard nofile 131072
 LIM
 
-# Même version que l'image de l'API (infra/api.Dockerfile).
-BUN_VERSION=$(sed -n 's/^FROM oven\/bun:\([0-9.]*\).*/\1/p' ../../api.Dockerfile)
+# Même version que l'image de l'API (infra/images/api.Dockerfile).
+BUN_VERSION=$(sed -n 's/^FROM oven\/bun:\([0-9.]*\).*/\1/p' ../../images/api.Dockerfile)
 # Serveur IPv6 seulement : github.com (installateur officiel) est injoignable, le registre
 # npm l'est ; le binaire officiel y est publié sous @oven/bun-linux-x64.
 if ! [ -x /root/.bun/bin/bun ] || [ "$(/root/.bun/bin/bun --version)" != "$BUN_VERSION" ]; then

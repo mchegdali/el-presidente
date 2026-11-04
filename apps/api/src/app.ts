@@ -32,7 +32,7 @@ const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 export interface AppOptions {
   env: Pick<Env, 'WEB_ORIGIN' | 'API_ORIGIN' | 'TRUST_PROXY' | 'METRICS_TOKEN' | 'ENABLE_TEST_LOGIN' | 'NODE_ENV'>;
   shedder?: Shedder | null;
-  /** Adresse du client quand la requête ne passe pas par HAProxy. */
+  /** Adresse du client quand la requête ne passe pas par Caddy. */
   directIp?: (req: Request, server: unknown) => string | null;
   gauges?: () => Record<string, number>;
 }

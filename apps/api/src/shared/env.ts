@@ -5,7 +5,7 @@ const schema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     /** Fichier SQLite (créé s'il n'existe pas ; migrations appliquées au démarrage). */
     DATABASE_PATH: z.string().min(1),
-    /** Socket Unix d'écoute (derrière HAProxy) ; sinon PORT. */
+    /** Socket Unix d'écoute (derrière Caddy) ; sinon PORT. */
     // Vide = absent : permet d'annuler la valeur de l'image (`LISTEN_UNIX=`) pour écouter en TCP.
     LISTEN_UNIX: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
     PORT: z.coerce.number().int().positive().default(4000),
@@ -23,7 +23,7 @@ const schema = z
     VAPID_SUBJECT: z.string().optional(),
     /** Jeton d'accès à /metrics ; sans jeton, /metrics est désactivé. */
     METRICS_TOKEN: z.string().min(16).optional(),
-    /** Derrière HAProxy : l'adresse du client vient de X-Forwarded-For. */
+    /** Derrière Caddy : l'adresse du client vient de X-Real-IP, posé par Caddy. */
     TRUST_PROXY: z.stringbool().default(false),
     /** Connexion de test (/test/login) pour le banc de charge et Playwright. Jamais en production. */
     ENABLE_TEST_LOGIN: z.stringbool().default(false),

@@ -1,0 +1,27 @@
+# Réplication continue de la base vers la Storage Box Hetzner (SFTP). Valeurs fournies par
+# l'environnement du conteneur (Litestream remplace ${VAR} avant de lire le fichier) :
+#   STORAGE_BOX_HOST      ex. u123456-sub1.your-storagebox.de
+#   STORAGE_BOX_USER      sous-compte dédié
+#   STORAGE_BOX_PASSWORD  secret (généré par Pulumi)
+#   STORAGE_BOX_HOST_KEY  clé d'hôte SSH de la Storage Box : identité du serveur vérifiée
+
+logging:
+  level: info
+  type: json
+  stderr: true
+
+# Un instantané complet par jour, gardé 7 jours ; entre deux, le WAL est envoyé chaque seconde.
+snapshot:
+  interval: 24h
+  retention: 168h
+
+dbs:
+  - path: /data/db/presidente.db
+    replica:
+      type: sftp
+      host: ${STORAGE_BOX_HOST}:23
+      user: ${STORAGE_BOX_USER}
+      password: ${STORAGE_BOX_PASSWORD}
+      host-key: ${STORAGE_BOX_HOST_KEY}
+      path: presidente
+      sync-interval: 1s
