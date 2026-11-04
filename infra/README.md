@@ -80,7 +80,8 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
    ```
 
 2. **Pulumi Cloud** : politique OIDC de GitHub (type de jeton **Personal**, utilisateur `chegdalim` ; les jetons d'organisation sont réservés à Enterprise), limitée au sujet
-   `repo:mchegdali/el-presidente:environment:production` ; environnement GitHub `production`
+   `repo:mchegdali@82240410/el-presidente@1413107630:environment:production` (sujet immuable de
+   GitHub : identifiants numériques du compte et du dépôt) ; environnement GitHub `production`
    limité à la branche `main`.
 3. **Google OAuth** : client « Application Web », redirection autorisée
    `https://api.el-presidente.chegdali.fr/api/auth/callback/google`.
