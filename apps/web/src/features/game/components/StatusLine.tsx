@@ -1,7 +1,7 @@
 import type { GameView as Game } from '@el-presidente/game';
 import type { PlayerSnapshot } from '@el-presidente/game/protocol';
 import type { ReactNode } from 'react';
-import { FORMAT_LABELS, forcedRankOf, ordinal, rankLabel } from '../cards';
+import { FORMAT_LABELS, exitPosition, forcedRankOf, isBurned, ordinal, rankLabel } from '../cards';
 import { ROLE_INFO } from '../roles';
 import type { Clock } from '../use-countdown';
 import styles from './GameView.module.css';
@@ -21,9 +21,11 @@ export function StatusLine({
 }) {
   const role = myPlayer?.role ? ROLE_INFO[myPlayer.role] : null;
   const forced = forcedRankOf(game.trick, game.trickSize);
-  const myPosition = game.finished.indexOf(me) + 1;
+  const myPosition = exitPosition(game, me);
   let text: ReactNode;
-  if (myPosition > 0) {
+  if (myPosition > 0 && isBurned(game, me)) {
+    text = <>Sorti sur un 2 : vous finissez {ordinal(myPosition)}. Regardez les autres se battre…</>;
+  } else if (myPosition > 0) {
     text = <>Vous êtes sorti {ordinal(myPosition)} ! Regardez les autres se battre…</>;
   } else if (game.phase === 'exchange') {
     text = <>Échange des cartes en cours</>;

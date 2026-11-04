@@ -8,7 +8,7 @@ import {
   rankOf,
   selectionProblem as problem,
 } from '@el-presidente/game';
-import type { TrickEntryView } from '@el-presidente/game';
+import type { GameView, TrickEntryView } from '@el-presidente/game';
 
 export { FORMAT_LABELS, rankLabel };
 
@@ -34,3 +34,17 @@ export const selectionProblem = (selected: readonly string[], trickSize: number,
   problem(selected.map(parseCard), trickSize, trickRank, forced);
 
 export const ordinal = (n: number) => (n === 1 ? '1er' : `${n}e`);
+
+/**
+ * Place de sortie d'un joueur (0 s'il joue encore). Un joueur sorti sur un 2 alors que
+ * c'est interdit est classé en bas : le premier d'entre eux en dernier.
+ */
+export const isBurned = (game: GameView, seat: number) => (game.burned ?? []).includes(seat);
+
+export function exitPosition(game: GameView, seat: number): number {
+  const i = game.finished.indexOf(seat);
+  if (i >= 0) return i + 1;
+  // `?? []` : vue d'une API d'avant la règle (le site et l'API ne sont pas déployés ensemble).
+  const b = (game.burned ?? []).indexOf(seat);
+  return b >= 0 ? game.counts.length - b : 0;
+}

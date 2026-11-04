@@ -25,6 +25,7 @@ export async function startRound(deps: Deps, table: Table, user: CurrentUser) {
       roles: table.players.map((p) => p.role),
       rng: deps.rng,
       now,
+      noTwoFinish: table.noTwoFinish,
     });
     if (dealt.isErr()) return Result.err(dealt.error);
     const { state } = dealt.value;

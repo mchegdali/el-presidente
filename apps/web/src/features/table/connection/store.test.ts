@@ -25,6 +25,7 @@ function setup() {
     hostSeat: 0,
     notice: null,
     turnLimit: null,
+    noTwoFinish: false,
     me: 0,
     players: ['Ana', 'Beto', 'Carla'].map((name, seat) => ({
       id: `u${seat}`,

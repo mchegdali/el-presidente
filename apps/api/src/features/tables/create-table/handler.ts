@@ -40,6 +40,7 @@ export async function createTable(
             roundNo: 0,
             notice: null,
             turnLimit: null,
+            noTwoFinish: false,
             players: [{ userId: user.id, name: name.value, image: user.image, role: null, dbSeat: 0 }],
             game: null,
             version: 0,

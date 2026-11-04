@@ -32,6 +32,11 @@ export const tableActions = (code: string, accept: (s: TableSnapshot) => void) =
       read<TableSnapshot>(api.tables[':code'].settings.$patch({ param: { code }, json: { turnLimit } })),
       accept,
     ),
+  setNoTwoFinish: (noTwoFinish: boolean) =>
+    snapshotAction(
+      read<TableSnapshot>(api.tables[':code'].settings.$patch({ param: { code }, json: { noTwoFinish } })),
+      accept,
+    ),
   async leave(): Promise<ActionResult> {
     const r = await read(api.tables[':code'].leave.$post({ param: { code } }));
     return r.ok ? { ok: true } : { ok: false, message: r.error.message };

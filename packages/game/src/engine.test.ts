@@ -26,7 +26,7 @@ const cards = (...texts: string[]): Card[] => texts.map(parseCard);
 const hand = (g: GameState, seat: number) => handView(g, seat);
 
 /** Manche en cours avec des mains imposées. */
-function forceRound(hands: string[][], turn: number): GameState {
+function forceRound(hands: string[][], turn: number, noTwoFinish = false): GameState {
   const n = hands.length;
   const h = createHands(n);
   hands.forEach((cs, s) => setHand(h, s, cards(...cs)));
@@ -45,6 +45,8 @@ function forceRound(hands: string[][], turn: number): GameState {
     prevTrick: [],
     prevWinner: -1,
     finished: [],
+    noTwoFinish,
+    burned: [],
     exchanges: [],
     events: [],
     eventSeq: 0,
@@ -65,8 +67,8 @@ const play = (g: GameState, seat: number, ...cs: string[]) => playCards(g, seat,
 const pass = (g: GameState, seat: number) => passTurn(g, seat, NOW);
 const lastEvent = (g: GameState) => g.events.at(-1)!;
 
-function newRound(players: number, roles: (Role | null)[], rng: Rng, roundNo = 1) {
-  const r = startRound({ players, roundNo, roles, rng, now: NOW });
+function newRound(players: number, roles: (Role | null)[], rng: Rng, roundNo = 1, noTwoFinish = false) {
+  const r = startRound({ players, roundNo, roles, rng, now: NOW, noTwoFinish });
   if (r.isErr()) throw new Error(r.error.message);
   return r.value.state;
 }
@@ -161,7 +163,7 @@ describe('parties complètes aléatoires', () => {
     const rng = seededRng(42);
     for (let i = 0; i < 1000; i++) {
       const n = 3 + rng(6);
-      playRandomRound(newRound(n, Array(n).fill(null), rng), rng);
+      playRandomRound(newRound(n, Array(n).fill(null), rng, 1, i % 2 === 1), rng);
     }
   });
 });
@@ -303,6 +305,53 @@ describe('règles', () => {
     expect(g.finished).toEqual([0, 2, 1]);
     expect(roundRoles(g)).toEqual(['president', 'trou', 'neutral']);
     expect(lastEvent(g).type).toBe('round_over');
+  });
+
+  test('interdit de finir sur un 2 : qui sort sur un 2 finit Trou-du-cul', () => {
+    const g = forceRound([['2S'], ['3H', '4H'], ['5D', '6D']], 0, true);
+    ok(play(g, 0, '2S'));
+    expect(lastEvent(g)).toMatchObject({ type: 'two', player: 0 });
+    expect(g.events.find((e) => e.type === 'burned')).toMatchObject({ player: 0, position: 3 });
+    expect(g.finished).toEqual([]);
+    expect(g.burned).toEqual([0]);
+    // Le pli fermé par le 2 passe au suivant, qui relance.
+    expect(g.turn).toBe(1);
+    ok(play(g, 1, '3H'));
+    ok(pass(g, 2));
+    ok(play(g, 1, '4H'));
+    expect(g.phase).toBe('over');
+    expect(g.finished).toEqual([1, 2, 0]);
+    expect(roundRoles(g)).toEqual(['trou', 'president', 'neutral']);
+  });
+
+  test('interdit de finir sur un 2 : le premier à sortir sur un 2 est le dernier', () => {
+    const g = forceRound([['2S'], ['2H'], ['3D', '4D'], ['5C', '6C']], 0, true);
+    ok(play(g, 0, '2S'));
+    expect(g.turn).toBe(1);
+    ok(play(g, 1, '2H'));
+    expect(g.events.filter((e) => e.type === 'burned').map((e) => e.position)).toEqual([4, 3]);
+    ok(play(g, 2, '3D'));
+    ok(pass(g, 3));
+    ok(play(g, 2, '4D'));
+    expect(g.phase).toBe('over');
+    expect(g.finished).toEqual([2, 3, 1, 0]);
+    expect(roundRoles(g)).toEqual(['trou', 'vice_trou', 'president', 'vice_president']);
+  });
+
+  test('interdit de finir sur un 2 : un 2 avant la dernière carte reste permis', () => {
+    const g = forceRound(
+      [
+        ['2S', '3S'],
+        ['4H', '5H'],
+        ['6D', '7D'],
+      ],
+      0,
+      true,
+    );
+    ok(play(g, 0, '2S'));
+    expect(g.burned).toEqual([]);
+    ok(play(g, 0, '3S'));
+    expect(g.finished).toEqual([0]);
   });
 
   test('carte ou rien : après deux simples de même valeur, le suivant doit suivre cette valeur ou passer', () => {

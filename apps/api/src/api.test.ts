@@ -264,6 +264,27 @@ describe('temps réel', () => {
   });
 });
 
+describe('variante « interdit de finir sur un 2 »', () => {
+  test('réglée par l’hôte, sans toucher au délai, et appliquée à la manche suivante', async () => {
+    const t = await setupTable(3);
+    const settings = (u: typeof t.host, body: { turnLimit?: number | null; noTwoFinish?: boolean }) =>
+      u.api.tables[':code'].settings.$patch({ param: { code: t.code }, json: body });
+    let snap = await json<TableSnapshot>(settings(t.host, { turnLimit: 30 }));
+    expect(snap.body.noTwoFinish).toBe(false);
+    const r = await json<ErrorBody>(settings(t.users[1]!, { noTwoFinish: true }));
+    expect(r.body.error.message).toMatch(/Seul le créateur/);
+    expect((await settings(t.host, {})).status).toBe(400);
+    snap = await json<TableSnapshot>(settings(t.host, { noTwoFinish: true }));
+    expect(snap.body).toMatchObject({ noTwoFinish: true, turnLimit: 30 });
+    snap = await json<TableSnapshot>(t.host.api.tables[':code'].rounds.$post({ param: { code: t.code } }));
+    expect(snap.body.game!.noTwoFinish).toBe(true);
+    // Désactivée pendant la manche : la manche en cours garde sa règle.
+    snap = await json<TableSnapshot>(settings(t.host, { noTwoFinish: false }));
+    expect(snap.body.noTwoFinish).toBe(false);
+    expect(snap.body.game!.noTwoFinish).toBe(true);
+  });
+});
+
 describe('passe automatique', () => {
   test('seul l’hôte règle le délai ; désactivé par défaut', async () => {
     const t = await setupTable(3);
@@ -344,6 +365,8 @@ describe('présence et notifications push', () => {
       0,
     );
     s.push.sent = [];
+    // Nouveau tour à un instant distinct du début de manche (déjà notifié si Beto commençait).
+    s.clock.t += 1000;
     await sockets[0]!.request({ op: 'play', req: 0, cards: [parseCard('5S')] });
     expect(s.push.sent.map((p) => p.userId)).toEqual([t.users[1]!.userId]);
     expect(s.push.sent[0]!.payload.url).toBe(`/t/${t.code}`);

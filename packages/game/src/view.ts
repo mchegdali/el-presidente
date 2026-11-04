@@ -29,6 +29,10 @@ export interface GameView {
   prevTrick: TrickEntryView[];
   prevWinner: number;
   finished: number[];
+  /** Règle « interdit de finir sur un 2 » pour cette manche. */
+  noTwoFinish: boolean;
+  /** Joueurs sortis sur un 2 (classés en bas). */
+  burned: number[];
   exchanges: ExchangeView[];
   events: GameEvent[];
   /** Nombre de cartes de chaque siège. */
@@ -54,6 +58,8 @@ export function gameView(g: GameState, seat: number | null): GameView {
     prevTrick: g.prevTrick.map(entryView),
     prevWinner: g.prevWinner,
     finished: [...g.finished],
+    noTwoFinish: g.noTwoFinish,
+    burned: [...g.burned],
     exchanges: g.exchanges.map((e) =>
       seat !== null && (e.from === seat || e.to === seat)
         ? { from: e.from, to: e.to, count: e.count, done: e.done, cards: e.cards && formatCards(e.cards) }

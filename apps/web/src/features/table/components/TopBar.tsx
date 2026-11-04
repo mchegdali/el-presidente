@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PushToggle } from '../../push/PushToggle';
 import { useTableContext } from '../context';
+import { NoTwoFinishSetting } from './NoTwoFinishSetting';
 import { TurnLimitSetting } from './TurnLimitSetting';
 import styles from './TopBar.module.css';
 
@@ -54,6 +55,7 @@ export function TopBar({ title }: { title?: string }) {
               {inRound && (
                 <div className={styles.settings}>
                   <TurnLimitSetting />
+                  <NoTwoFinishSetting />
                   <PushToggle compact />
                 </div>
               )}

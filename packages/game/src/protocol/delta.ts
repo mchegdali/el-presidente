@@ -85,10 +85,14 @@ export function applyMove(side: PlayerSide, d: MoveDelta): PlayerSide {
   }
 
   const finished = [...v.finished];
+  // `?? []` : vue d'une API d'avant la règle (le site et l'API ne sont pas déployés ensemble).
+  const burned = [...(v.burned ?? [])];
   for (const e of d.events) {
     if (e.type === 'finished') finished.push(e.player);
+    if (e.type === 'burned') burned.push(e.player);
     if (e.type === 'round_over') {
       for (let s = 0; s < counts.length; s++) if (counts[s]! > 0 && !finished.includes(s)) finished.push(s);
+      for (let i = burned.length - 1; i >= 0; i--) finished.push(burned[i]!);
     }
   }
 
@@ -109,6 +113,8 @@ export function applyMove(side: PlayerSide, d: MoveDelta): PlayerSide {
       prevTrick,
       prevWinner,
       finished,
+      noTwoFinish: v.noTwoFinish,
+      burned,
       exchanges,
       events: events.length > MAX_EVENTS ? events.slice(events.length - MAX_EVENTS) : events,
       counts,

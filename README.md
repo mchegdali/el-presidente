@@ -23,6 +23,9 @@ téléphones et ordinateurs. On se connecte avec Google, on crée une table, on 
   Président, qui lui en rend 2 de son choix ; idem avec 1 carte entre Vice-Trou-du-cul et
   Vice-Président. Le Trou-du-cul commence ; à la 1re manche, c'est celui qui a la Dame de
   cœur.
+- Variante (réglée par l'hôte) : **interdit de finir sur un 2**. Qui pose sa dernière carte
+  avec un 2 finit en bas du classement ; s'ils sont plusieurs, le premier à l'avoir fait
+  est Trou-du-cul. Le réglage vaut à partir de la manche suivante.
 
 ## À la table
 

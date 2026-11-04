@@ -92,6 +92,7 @@ export class TableStore {
           roundNo: lobby.roundNo,
           notice: lobby.notice,
           turnLimit: lobby.turnLimit,
+          noTwoFinish: lobby.noTwoFinish,
           players: rows,
           game: game === undefined ? null : fromSnapshot(game.state),
           version: game?.version ?? 0,

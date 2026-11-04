@@ -35,6 +35,10 @@ export function Rules({ open = false }: { open?: boolean }) {
         </li>
         <li>Le premier à se débarrasser de ses cartes est Président, le dernier Trou-du-cul.</li>
         <li>
+          <strong>Interdit de finir sur un 2</strong> (si l&apos;hôte l&apos;active) : qui pose sa dernière carte avec
+          un 2 finit en bas du classement ; s&apos;ils sont plusieurs, le premier à l&apos;avoir fait est Trou-du-cul.
+        </li>
+        <li>
           Manche suivante : le Trou-du-cul donne ses 2 meilleures cartes au Président, qui lui en rend 2 de son choix (1
           carte entre Vice-Trou-du-cul et Vice-Président, à partir de 4 joueurs). Le Trou-du-cul commence.
         </li>

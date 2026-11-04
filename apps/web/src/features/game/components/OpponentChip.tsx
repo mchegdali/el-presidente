@@ -1,7 +1,7 @@
 import type { GameView as Game } from '@el-presidente/game';
 import type { PlayerSnapshot } from '@el-presidente/game/protocol';
 import { EmoteBubble } from '../../emotes/Emotes';
-import { ordinal } from '../cards';
+import { exitPosition, isBurned, ordinal } from '../cards';
 import { ROLE_INFO } from '../roles';
 import type { Clock } from '../use-countdown';
 import styles from './OpponentChip.module.css';
@@ -18,7 +18,8 @@ type Props = {
 };
 
 export function OpponentChip({ player, game, isMe, acting, dim, clock, now }: Props) {
-  const position = game.finished.indexOf(player.seat) + 1;
+  const position = exitPosition(game, player.seat);
+  const burned = isBurned(game, player.seat);
   const lastAction = game.trick.findLast((t) => t.p === player.seat);
   const passed = lastAction !== undefined && 'pass' in lastAction;
   const role = player.role ? ROLE_INFO[player.role] : null;
@@ -50,7 +51,9 @@ export function OpponentChip({ player, game, isMe, acting, dim, clock, now }: Pr
       </div>
       <div className={styles.info}>
         {position > 0 ? (
-          <span className={styles.outLabel}>Sorti {ordinal(position)}</span>
+          <span className={styles.outLabel} title={burned ? 'Sorti sur un 2 : classé en bas' : undefined}>
+            {burned ? '🚫 ' : ''}Sorti {ordinal(position)}
+          </span>
         ) : (
           <span className={styles.cards} title={`${cards} cartes`}>
             <span className={styles.back} aria-hidden="true" />×{cards}

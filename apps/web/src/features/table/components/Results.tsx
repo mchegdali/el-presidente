@@ -13,6 +13,7 @@ import { PlayersPanel } from './PlayersPanel';
 import styles from './Room.module.css';
 import { StartRound } from './StartRound';
 import { TopBar } from './TopBar';
+import { NoTwoFinishSetting } from './NoTwoFinishSetting';
 import { TurnLimitSetting } from './TurnLimitSetting';
 
 export function Results() {
@@ -68,6 +69,7 @@ export function Results() {
 
         <Panel className={styles.settings}>
           <TurnLimitSetting />
+          <NoTwoFinishSetting />
           <PushToggle />
         </Panel>
         <Chat />

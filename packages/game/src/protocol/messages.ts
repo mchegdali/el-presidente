@@ -148,6 +148,8 @@ export interface TableSnapshot {
   notice: string | null;
   /** Délai par tour en secondes ; null = pas de passe automatique. */
   turnLimit: number | null;
+  /** Variante « interdit de finir sur un 2 » (prochaines manches ; la manche en cours a la sienne). */
+  noTwoFinish: boolean;
   /** Siège du joueur, null s'il n'est pas à la table. */
   me: number | null;
   players: PlayerSnapshot[];
@@ -202,7 +204,18 @@ export type ServerMessage =
 
 const PHASES: Phase[] = ['exchange', 'playing', 'over'];
 const KINDS = ['play', 'pass', 'give'] as const;
-const EVENT_TYPES = ['round_start', 'exchange_done', 'cut', 'two', 'won', 'finished', 'round_over', 'timeout'] as const;
+// Nouveaux types ajoutés à la fin : les indices déjà publiés ne bougent pas.
+const EVENT_TYPES = [
+  'round_start',
+  'exchange_done',
+  'cut',
+  'two',
+  'won',
+  'finished',
+  'round_over',
+  'timeout',
+  'burned',
+] as const;
 const TIMEOUT_ACTIONS = ['pass', 'play', 'give'] as const;
 
 function writeEvent(w: Writer, e: GameEvent): void {
@@ -212,6 +225,7 @@ function writeEvent(w: Writer, e: GameEvent): void {
       w.i8(e.player).u8(e.reason === 'trou' ? 1 : 0);
       break;
     case 'finished':
+    case 'burned':
       w.i8(e.player).u8(e.position);
       break;
     case 'timeout':
@@ -234,6 +248,7 @@ function readEvent(r: Reader): GameEvent {
     case 'round_start':
       return { seq, type, player, reason: extra === 1 ? 'trou' : 'queen' };
     case 'finished':
+    case 'burned':
       return { seq, type, player, position: extra };
     case 'timeout':
       return { seq, type, player, action: TIMEOUT_ACTIONS[extra] ?? 'pass' };

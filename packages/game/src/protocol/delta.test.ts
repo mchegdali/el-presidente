@@ -45,8 +45,8 @@ function broadcast(
   }
 }
 
-function playRound(n: number, roles: (Role | null)[], rng: Rng, roundNo: number) {
-  const started = startRound({ players: n, roundNo, roles, rng, now: 0 });
+function playRound(n: number, roles: (Role | null)[], rng: Rng, roundNo: number, noTwoFinish = false) {
+  const started = startRound({ players: n, roundNo, roles, rng, now: 0, noTwoFinish });
   if (started.isErr()) throw started.error;
   const g = started.value.state;
   const all = sides(g);
@@ -113,6 +113,17 @@ describe('deltas : la vue du client suit exactement celle du serveur', () => {
             : ['president', 'vice_president', ...Array(n - 4).fill('neutral'), 'vice_trou', 'trou'];
       playRound(n, roles, rng, 1 + (i % 2));
     }
+  });
+
+  test('300 manches aléatoires avec « interdit de finir sur un 2 »', () => {
+    const rng = seededRng(2026);
+    let burned = 0;
+    for (let i = 0; i < 300; i++) {
+      const g = playRound(3 + (i % 6), Array(3 + (i % 6)).fill(null), rng, 1, true);
+      burned += g.burned.length;
+      expect(new Set(g.finished).size).toBe(g.n);
+    }
+    expect(burned).toBeGreaterThan(0);
   });
 });
 

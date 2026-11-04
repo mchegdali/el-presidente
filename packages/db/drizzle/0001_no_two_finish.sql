@@ -1,0 +1,1 @@
+ALTER TABLE `lobbies` ADD `no_two_finish` integer DEFAULT false NOT NULL;

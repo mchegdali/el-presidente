@@ -9,7 +9,14 @@ export const updateSettingsRoute = (deps: Deps) =>
   router().patch(
     '/:code/settings',
     requireUser,
-    validJson(z.object({ turnLimit: z.number().int().min(0).max(600).nullable() })),
-    async (c) =>
-      respond(c, await updateSettings(deps, c.req.param('code'), c.get('me'), c.req.valid('json').turnLimit)),
+    validJson(
+      z
+        .object({
+          turnLimit: z.number().int().min(0).max(600).nullable().optional(),
+          noTwoFinish: z.boolean().optional(),
+        })
+        .strict()
+        .refine((s) => s.turnLimit !== undefined || s.noTwoFinish !== undefined, 'Aucun réglage à changer.'),
+    ),
+    async (c) => respond(c, await updateSettings(deps, c.req.param('code'), c.get('me'), c.req.valid('json'))),
   );

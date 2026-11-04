@@ -97,11 +97,15 @@ export function rolesFromFinish(finished: readonly number[], n: number): Role[] 
   return roles;
 }
 
-/** Fin de manche : le dernier joueur avec des cartes termine Trou-du-cul. */
+/**
+ * Fin de manche : le dernier joueur avec des cartes suit ceux qui sont sortis normalement,
+ * puis viennent les joueurs sortis sur un 2, le premier d'entre eux en dernier.
+ */
 function finishRound(g: GameState, out: GameEvent[]): void {
   for (let s = 0; s < g.n; s++) {
     if (handSize(g.hands, s) > 0 && !g.finished.includes(s)) g.finished.push(s);
   }
+  for (let i = g.burned.length - 1; i >= 0; i--) g.finished.push(g.burned[i]!);
   g.phase = 'over';
   g.turn = -1;
   if (g.trick.length > 0) {
@@ -153,6 +157,8 @@ export interface StartRoundInput {
   roles: readonly (Role | null)[];
   rng: Rng;
   now: number;
+  /** Interdit de finir sur un 2 : qui sort sur un 2 finit en bas du classement. */
+  noTwoFinish?: boolean;
 }
 
 /** Distribue et prépare une manche : échanges selon les rôles, premier joueur. */
@@ -182,6 +188,8 @@ export function startRound(input: StartRoundInput): Result<{ state: GameState; e
     prevTrick: [],
     prevWinner: -1,
     finished: [],
+    noTwoFinish: input.noTwoFinish ?? false,
+    burned: [],
     exchanges: [],
     events: [],
     eventSeq: 0,
@@ -263,8 +271,13 @@ function applyPlay(g: GameState, seat: number, cards: readonly Card[], out: Game
   g.passes = 0;
 
   if (handSize(g.hands, seat) === 0) {
-    g.finished.push(seat);
-    pushEvent(g, out, { type: 'finished', player: seat, position: g.finished.length });
+    if (g.noTwoFinish && r === TWO) {
+      g.burned.push(seat);
+      pushEvent(g, out, { type: 'burned', player: seat, position: g.n - g.burned.length + 1 });
+    } else {
+      g.finished.push(seat);
+      pushEvent(g, out, { type: 'finished', player: seat, position: g.finished.length });
+    }
   }
 
   // Coupe à 4 : les quatre cartes de la valeur sont sur le pli. Le 2 ferme le pli.

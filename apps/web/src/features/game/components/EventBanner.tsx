@@ -23,6 +23,13 @@ function describe(ev: GameEvent, nameOf: (seat: number) => string, roundNo: numb
         text: `${who} termine ${ordinal(ev.position)}`,
         tone: ev.position === 1 ? 'big' : 'small',
       };
+    case 'burned':
+      return {
+        key: ev.seq,
+        title: '¡Qué mala suerte!',
+        text: `${who} sort sur un 2 et finit ${ordinal(ev.position)}`,
+        tone: 'big',
+      };
     case 'round_start':
       return {
         key: ev.seq,

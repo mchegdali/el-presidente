@@ -16,6 +16,7 @@ export function snapshotFor(table: Table, userId: string | null, now = Date.now(
     hostSeat: table.hostId === null ? -1 : table.seatOf(table.hostId),
     notice: table.notice,
     turnLimit: table.turnLimit,
+    noTwoFinish: table.noTwoFinish,
     me: me < 0 ? null : me,
     players: table.players.map((p, seat) => {
       const emote = table.emotes.get(p.userId);

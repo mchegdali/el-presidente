@@ -107,6 +107,8 @@ export const lobbies = sqliteTable(
     notice: text('notice'),
     /** Délai par tour en secondes ; null = pas de passe automatique. */
     turnLimit: integer('turn_limit'),
+    /** Variante : interdit de finir sur un 2 (qui sort sur un 2 finit en bas du classement). */
+    noTwoFinish: integer('no_two_finish', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

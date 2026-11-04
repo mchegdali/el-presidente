@@ -26,6 +26,8 @@ export type GameEvent =
   | { seq: number; type: 'exchange_done'; player: number }
   | { seq: number; type: 'cut' | 'two' | 'won'; player: number }
   | { seq: number; type: 'finished'; player: number; position: number }
+  /** Sorti sur un 2 alors que la règle l'interdit : classé en bas, à `position`. */
+  | { seq: number; type: 'burned'; player: number; position: number }
   | { seq: number; type: 'round_over' }
   | { seq: number; type: 'timeout'; player: number; action: 'pass' | 'play' | 'give' };
 
@@ -52,8 +54,15 @@ export interface GameState {
   passes: number;
   prevTrick: TrickEntry[];
   prevWinner: number;
-  /** Ordre de sortie. */
+  /**
+   * Ordre de sortie ; en fin de manche, classement complet (les joueurs sortis sur un 2
+   * y sont ajoutés en dernier).
+   */
   finished: number[];
+  /** Règle « interdit de finir sur un 2 », fixée au début de la manche. */
+  noTwoFinish: boolean;
+  /** Joueurs sortis sur un 2 (règle active), dans l'ordre : le premier finit dernier. */
+  burned: number[];
   exchanges: Exchange[];
   /** 20 derniers événements. */
   events: GameEvent[];

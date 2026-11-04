@@ -13,6 +13,7 @@ import { PlayersPanel } from './PlayersPanel';
 import styles from './Room.module.css';
 import { StartRound } from './StartRound';
 import { TopBar } from './TopBar';
+import { NoTwoFinishSetting } from './NoTwoFinishSetting';
 import { TurnLimitSetting } from './TurnLimitSetting';
 
 export function Lobby() {
@@ -29,6 +30,7 @@ export function Lobby() {
         </div>
         <Panel className={styles.settings}>
           <TurnLimitSetting />
+          <NoTwoFinishSetting />
           <PushToggle />
         </Panel>
         <Chat />

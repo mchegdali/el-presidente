@@ -21,6 +21,8 @@ export class Table {
   roundNo: number;
   notice: string | null;
   turnLimit: number | null;
+  /** Variante « interdit de finir sur un 2 », appliquée à partir de la manche suivante. */
+  noTwoFinish: boolean;
   players: Seat[];
   game: GameState | null;
   /** Incrémentée à chaque changement diffusé aux clients. */
@@ -47,6 +49,7 @@ export class Table {
       roundNo: number;
       notice: string | null;
       turnLimit: number | null;
+      noTwoFinish: boolean;
       players: Seat[];
       game: GameState | null;
       version: number;
@@ -58,6 +61,7 @@ export class Table {
     this.roundNo = init.roundNo;
     this.notice = init.notice;
     this.turnLimit = init.turnLimit;
+    this.noTwoFinish = init.noTwoFinish;
     this.players = init.players;
     this.game = init.game;
     this.version = init.version;

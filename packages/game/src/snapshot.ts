@@ -19,6 +19,9 @@ export interface GameSnapshot {
   prevTrick: TrickEntry[];
   prevWinner: number;
   finished: number[];
+  /** Absents des manches écrites avant la règle « interdit de finir sur un 2 ». */
+  noTwoFinish?: boolean;
+  burned?: number[];
   exchanges: Exchange[];
   events: GameEvent[];
   eventSeq: number;
@@ -41,6 +44,8 @@ export function toSnapshot(g: GameState): GameSnapshot {
     prevTrick: g.prevTrick,
     prevWinner: g.prevWinner,
     finished: g.finished,
+    noTwoFinish: g.noTwoFinish,
+    burned: g.burned,
     exchanges: g.exchanges,
     events: g.events,
     eventSeq: g.eventSeq,
@@ -63,6 +68,8 @@ export function fromSnapshot(s: GameSnapshot): GameState {
     prevTrick: s.prevTrick.map((e) => ({ p: e.p, c: e.c && [...e.c] })),
     prevWinner: s.prevWinner,
     finished: [...s.finished],
+    noTwoFinish: s.noTwoFinish ?? false,
+    burned: [...(s.burned ?? [])],
     exchanges: s.exchanges.map((e) => ({ ...e, cards: e.cards && [...e.cards] })),
     events: s.events.map((e) => ({ ...e })),
     eventSeq: s.eventSeq,
