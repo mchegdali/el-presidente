@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { storageBox } from './backup';
 import { apiDomain, config, webDomain } from './config';
-import { attachment, hostKey, ipv4 } from './server';
+import { attachment, hostKey, ipv4, server } from './server';
 
 const DB = '/data/db/presidente.db';
 
@@ -57,9 +57,10 @@ const provider = new docker.Provider('server', {
     },
   ],
 });
-// Nouveau serveur (ou nouveau volume) : images et conteneurs recréés. Sans ce déclencheur,
+// Nouveau serveur ou nouveau volume (l'identifiant du rattachement est celui du volume) :
+// images et conteneurs recréés. Sans ce déclencheur,
 // l'empreinte des images ne change pas et Pulumi croirait les conteneurs déjà présents.
-const opts = { provider, replacementTrigger: attachment.id };
+const opts = { provider, replacementTrigger: pulumi.interpolate`${server.id}/${attachment.id}` };
 
 const pull = (id: string, ref: string) => new docker.RemoteImage(id, { name: ref, keepLocally: true }, opts).imageId;
 
