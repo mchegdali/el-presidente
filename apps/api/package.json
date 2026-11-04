@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "build": "bun build src/index.ts --compile --bytecode --format=esm --minify --sourcemap=linked --production --target=bun-linux-x64-modern --outfile dist/presidente-api",
+    "build": "bun build src/index.ts --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig --bytecode --format=esm --minify --sourcemap=linked --production --target=bun-linux-x64-modern --outfile dist/presidente-api",
     "typecheck": "tsc --noEmit",
     "test": "LOG_LEVEL=warn bun test",
     "build:types": "tsc -p tsconfig.types.json"

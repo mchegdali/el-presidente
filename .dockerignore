@@ -3,5 +3,6 @@
 **/dist
 **/types
 **/test-results
+**/.env*
+**/*.db*
 .git
-supabase

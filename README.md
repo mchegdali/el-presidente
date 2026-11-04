@@ -45,9 +45,9 @@ téléphones et ordinateurs. On se connecte avec Google, on crée une table, on 
 
 ```
 apps/web/        Next 16 (Vercel) : pages statiques, état de la table par WebSocket
-apps/api/        Bun + Hono (Hetzner) : seul à parler à Postgres ; jeu, temps réel, auth
+apps/api/        Bun + Hono (Hetzner) : jeu, temps réel, auth ; base SQLite dans le processus
 packages/game/   Règles du jeu (pures, partagées) et protocole WebSocket binaire
-packages/db/     Schéma Drizzle et migrations (tables, contraintes, index : aucune fonction)
+packages/db/     Schéma Drizzle et migrations SQLite (tables, contraintes, index : aucun trigger)
 packages/config/ tsconfig commun
 infra/           Image de l'API, HAProxy, Postgres primaire + standby, sauvegardes, banc de charge
 ```
@@ -72,16 +72,18 @@ Déploiement et exploitation : [`infra/README.md`](infra/README.md).
 
 ## Développement
 
-Prérequis : [Bun](https://bun.sh) 1.4, Docker (pour Postgres).
+Prérequis : [Bun](https://bun.sh) 1.4. Rien d'autre : la base est un fichier SQLite.
 
 ```bash
 bun install
-docker compose -f compose.dev.yml up -d          # Postgres 17 sur localhost:5432
-cp apps/api/.env.example apps/api/.env           # ENABLE_TEST_LOGIN pour jouer sans Google
-cp apps/web/.env.example apps/web/.env.local
-bun run --cwd packages/db migrate
 bun run dev                                      # API :4000 + site :3000
 ```
+
+- Les valeurs de développement (sans secret) sont dans `apps/api/.env.development` et
+  `apps/web/.env.development`, chargées automatiquement. La base est créée et migrée au
+  démarrage dans `apps/api/presidente.db` (supprimer le fichier pour repartir de zéro).
+- Pour se connecter avec Google en local, mettre de vrais identifiants dans
+  `apps/api/.env.local` (ignoré par git).
 
 Sans identifiants Google, connectez-vous avec la route de test (développement uniquement) :
 `curl -X POST localhost:4000/test/login -H 'origin: http://localhost:3000' -H
@@ -90,8 +92,8 @@ navigateur (Playwright le fait dans `apps/web/e2e`).
 
 ```bash
 bun run lint && bun run format:check && bun run typecheck
-bun run test                                     # PGlite par défaut ; TEST_DATABASE_URL=… pour un vrai Postgres
-bun run --cwd apps/web e2e                       # 3 navigateurs jouent une partie (API + site + Postgres)
+bun run test                                     # SQLite en mémoire, vraies migrations
+bun run --cwd apps/web e2e                       # 3 joueurs jouent une partie (API + site, base neuve)
 bun run --cwd packages/game bench                # micro-banc du moteur
 bun run --cwd infra/bench bots --api http://localhost:4000 --tables 10   # banc de charge (voir infra/bench)
 ```
