@@ -21,15 +21,15 @@
     "@el-presidente/db": "workspace:*",
     "@el-presidente/game": "workspace:*",
     "@hono/zod-validator": "0.9.1",
-    "better-auth": "1.7.8",
+    "better-auth": "1.7.14",
     "better-result": "3.0.1",
-    "hono": "4.13.13",
+    "hono": "4.13.14",
     "web-push": "3.6.7",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@el-presidente/config": "workspace:*",
-    "@types/bun": "1.4.3",
+    "@types/bun": "1.4.4",
     "@types/web-push": "3.6.4",
     "typescript": "5.9.3"
   }

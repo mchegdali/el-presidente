@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Mises à jour : versions exactes, images et Actions épinglées par empreinte, 7 jours d'ancienneté minimum (comme bunfig.toml).",
+  "extends": ["config:recommended", "docker:pinDigests", "helpers:pinGitHubActionDigestsToSemver"],
+  "timezone": "Europe/Paris",
+  "rangeStrategy": "pin",
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "prConcurrentLimit": 5,
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on monday"] },
+  "packageRules": [
+    {
+      "description": "Correctifs et mineures regroupés : une seule PR par semaine à relire.",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "groupName": "mises à jour mineures",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Majeures : une PR chacune, jamais regroupées.",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

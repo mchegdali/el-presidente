@@ -4,7 +4,7 @@
 
 FROM oven/bun:1.4.4 AS build
 WORKDIR /src
-COPY package.json bun.lock ./
+COPY package.json bun.lock bunfig.toml ./
 COPY packages ./packages
 COPY apps/api ./apps/api
 COPY apps/web/package.json ./apps/web/package.json

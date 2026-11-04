@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@el-presidente/config": "workspace:*",
-    "@types/bun": "1.4.3",
+    "@types/bun": "1.4.4",
     "mitata": "1.0.34",
     "typescript": "5.9.3"
   }

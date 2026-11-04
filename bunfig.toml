@@ -1,0 +1,6 @@
+[install]
+# Versions exactes dans package.json, jamais de plage.
+exact = true
+# Une version n'est installable qu'après 7 jours de publication : le temps qu'une
+# version compromise ou cassée soit repérée et retirée. Exceptions : à justifier ici.
+minimumReleaseAge = 604800
