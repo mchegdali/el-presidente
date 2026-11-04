@@ -53,7 +53,10 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
 - **Remplacement du serveur** (changement de cloud-init) : le volume est détaché puis
   rattaché, rien à restaurer.
 - **Sinistre** (volume perdu) : au déploiement suivant, le conteneur de restauration
-  reconstruit la base depuis la Storage Box avant le démarrage de l'API.
+  reconstruit la base depuis la Storage Box avant le démarrage de l'API. Exercé le
+  2026-11-04 : serveur et volume remplacés, ligne témoin retrouvée, `integrity_check` ok.
+- Le volume et la Storage Box sont protégés deux fois (Pulumi `protect` et protection
+  Hetzner) : les supprimer demande de lever les deux, volontairement.
 
 ## Mise en place (une fois)
 
@@ -117,3 +120,7 @@ sudo docker ps
 sudo docker logs presidente-api
 sudo docker exec presidente-litestream /usr/local/bin/litestream databases
 ```
+
+Si un `pulumi up` s'interrompt pendant un remplacement du serveur, l'état peut croire des
+conteneurs présents qui n'existent pas sur le nouveau serveur : `pulumi refresh` (aperçu,
+puis application), puis `pulumi up`.

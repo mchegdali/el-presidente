@@ -10,6 +10,8 @@ config:
   el-presidente:vercelTeamId: team_RP773hLkADg8fyyPEgpLB6DQ
   # Images publiées par la CI (remplacées à chaque déploiement par leur empreinte).
   el-presidente:images:
-    api: ghcr.io/mchegdali/el-presidente-api:latest
-    caddy: ghcr.io/mchegdali/el-presidente-caddy:latest
-    litestream: ghcr.io/mchegdali/el-presidente-litestream:latest
+    api: ghcr.io/mchegdali/el-presidente-api@sha256:7c313d077a6a98b2c4d5b6781167e2273c7ee0c5bed62e411a9723ba258c1f68
+    caddy: ghcr.io/mchegdali/el-presidente-caddy@sha256:58159872b4dea5be7b25dea650b4541b1f6538a09e77f21bf41370782270f0b4
+    litestream: ghcr.io/mchegdali/el-presidente-litestream@sha256:95eb79c858c0df079f872910ca610fa079d0c9ba692d4f905c838d295bfd12cf
+  el-presidente:storageBoxHostKey: |-
+    ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBAGK0po6usux4Qv2d8zKZN1dDvbWjxKkGsx7XwFdSUCnF19Q8psHEUWR7C/LtSQ5crU/g+tQVRBtSgoUcE8T+FWp5wBxKvWG2X9gD+s9/4zRmDeSJR77W6gSA/+hpOZoSE+4KgNdnbYSNtbZH/dN74EG7GLb/gcIpbUUzPNXpfKl7mQitw==

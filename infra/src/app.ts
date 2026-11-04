@@ -57,7 +57,9 @@ const provider = new docker.Provider('server', {
     },
   ],
 });
-const opts = { provider };
+// Nouveau serveur (ou nouveau volume) : images et conteneurs recréés. Sans ce déclencheur,
+// l'empreinte des images ne change pas et Pulumi croirait les conteneurs déjà présents.
+const opts = { provider, replacementTrigger: attachment.id };
 
 const pull = (id: string, ref: string) => new docker.RemoteImage(id, { name: ref, keepLocally: true }, opts).imageId;
 
