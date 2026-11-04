@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: 'Confidentialité — El Presidente' 
 
 // Responsable du traitement et contact affichés sur la page.
 const RESPONSABLE = 'Moustapha Chegdali';
-const CONTACT = 'CONTACT_A_RENSEIGNER';
+const CONTACT = 'contact@chegdali.fr';
 const MISE_A_JOUR = '4 novembre 2026';
 
 // Chaque durée annoncée ici est appliquée par le code (apps/api/src/features/privacy/purge.ts,
