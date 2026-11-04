@@ -79,7 +79,7 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
        CI_SSH_KEY: { fn::secret: … } # clé privée de `el-presidente-ci`
    ```
 
-2. **Pulumi Cloud** : politique OIDC de GitHub limitée au sujet
+2. **Pulumi Cloud** : politique OIDC de GitHub (type de jeton **Personal**, utilisateur `chegdalim` ; les jetons d'organisation sont réservés à Enterprise), limitée au sujet
    `repo:mchegdali/el-presidente:environment:production` ; environnement GitHub `production`
    limité à la branche `main`.
 3. **Google OAuth** : client « Application Web », redirection autorisée

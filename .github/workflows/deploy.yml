@@ -72,11 +72,13 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
-      # Jeton Pulumi Cloud de courte durée, échangé contre le jeton OIDC de GitHub.
+      # Jeton Pulumi Cloud de courte durée, échangé contre le jeton OIDC de GitHub. Jeton
+      # personnel : les jetons d'organisation par OIDC sont réservés à l'offre Enterprise.
       - uses: pulumi/auth-actions@159c3e431aab767d4519b96f3f784d7d3d725622 # v2.1.1
         with:
           organization: mchegdali
-          requested-token-type: urn:pulumi:token-type:access_token:organization
+          requested-token-type: urn:pulumi:token-type:access_token:personal
+          scope: user:chegdalim
       # Clé SSH de la CI (ESC) dans un agent : jamais écrite sur le disque.
       - id: esc
         uses: pulumi/esc-action@eec71a90d9989af7ff14bd700b83fc72fae36119 # v4.0.0
