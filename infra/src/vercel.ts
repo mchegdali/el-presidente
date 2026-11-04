@@ -11,8 +11,10 @@ new vercel.ProjectEnvironmentVariable('api-url', {
   teamId: config.vercelTeamId,
   key: 'NEXT_PUBLIC_API_URL',
   value: `https://${apiDomain}`,
-  targets: ['production', 'preview'],
+  // `vercel dev` / `vercel env pull` aussi : l'API de production est la seule publique.
+  targets: ['production', 'preview', 'development'],
   sensitive: false,
+  comment: "URL publique de l'API Bun (Hetzner)",
 });
 
 new vercel.ProjectDomain('web', { projectId: project.id, teamId: config.vercelTeamId, domain: webDomain });

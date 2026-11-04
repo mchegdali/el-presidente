@@ -6,6 +6,9 @@
 # (réseau de l'hôte), aucune capacité nécessaire.
 
 FROM caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e AS caddy
+# L'image officielle pose cap_net_bind_service sur le binaire. Avec no-new-privileges et
+# aucune capacité, le noyau refuse alors l'exécution (« operation not permitted ») : retirée.
+RUN setcap -r /usr/bin/caddy
 
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329
 # Relie le paquet GHCR au dépôt (droits de la CI sur les versions suivantes).
