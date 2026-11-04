@@ -2,95 +2,105 @@
 
 ```
 Navigateur ──HTTPS──▶ Vercel (Next, arn1)
-    └──HTTPS / WSS──▶ CX23 n°1 : HAProxy (TLS) ─socket─▶ API (Bun) ─socket─▶ Postgres 17 (primaire)
-                                                                        │ réplication asynchrone (SSL, réseau privé)
-                      CX23 n°2 : Postgres 17 (hot standby) + sauvegardes quotidiennes ◀┘
+    └──HTTPS / WSS──▶ Hetzner CX23
+                        Caddy      (réseau de l'hôte, 80/443 TCP + 443 UDP, TLS automatique)
+                          └─socket Unix /run/presidente/api.sock─▶ API (Bun, SQLite en WAL)
+                        Litestream ── lit le WAL ── SFTP ──▶ Storage Box Hetzner
+                        /data      volume Hetzner : base (db/) et certificats (caddy/)
 ```
 
-| Fichier                    | Rôle                                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `api.Dockerfile`           | Image de l'API : un binaire Bun compilé (`presidente-api`, et `presidente-api migrate`), distroless, non root |
-| `primary/compose.yml`      | HAProxy + API + Postgres primaire, réseau hôte, sockets Unix partagées (groupe 999)                           |
-| `primary/haproxy.cfg`      | TLS 1.3, HTTP/2, WebSocket en tunnel, défi ACME sans état, `/metrics` bloqué                                  |
-| `primary/postgresql.conf`  | Réglages pour 4 Go partagés (1 Go de buffers, JIT désactivé, WAL zstd, SSL)                                   |
-| `primary/init/01-roles.sh` | Premier démarrage : rôles `app` et `replicator`, `pg_stat_statements`, slot du standby                        |
-| `primary/acme/issue.sh`    | Certificat ECDSA Let's Encrypt (acme.sh), rechargement à chaud dans HAProxy                                   |
-| `primary/deploy.sh`        | Déploiement : image, migrations, redémarrage, vérification de santé                                           |
-| `standby/`                 | Hot standby (`init-standby.sh` : `pg_basebackup` par le slot)                                                 |
-| `backup/`                  | `pg_dump` quotidien sur le standby, vérifié, rotation 7 jours (timer systemd)                                 |
-| `system/`                  | `bootstrap.sh` (Docker, SSH par clé, mises à jour auto, THP) et `sysctl` (BBR, fq, backlog…)                  |
-| `bench/`                   | Banc de charge : bots Bun qui jouent de vraies parties ([résultats](bench/RESULTS.md))                        |
+Tout est décrit en TypeScript avec Pulumi (`runtime: bun`) : serveur, volume, pare-feu,
+Storage Box, conteneurs, DNS (OVH), domaine et variable du projet Vercel. Aucune étape à la
+main sur le serveur, aucun fichier de secrets sur le serveur.
+
+| Fichier                       | Rôle                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `index.ts`, `Pulumi.*.yaml`   | Pile `prod` ; secrets dans l'environnement ESC `el-presidente/prod`                                           |
+| `src/server.ts`               | Serveur (Ubuntu LTS), pare-feu (22, 80, 443), volume protégé, clé d'hôte SSH épinglée                         |
+| `src/cloud-init.ts`           | Utilisateurs `admin` et `deploy`, sshd par clé seulement, Docker, sysctl, mises à jour                        |
+| `src/backup.ts`               | Storage Box et sous-compte Litestream (mot de passe généré par Pulumi)                                        |
+| `src/app.ts`                  | Conteneurs par l'API Docker à travers SSH : restauration → API → Litestream → Caddy                           |
+| `src/dns.ts`, `src/vercel.ts` | Enregistrements OVH (A, AAAA, CAA, CNAME) ; `NEXT_PUBLIC_API_URL` et domaine Vercel                           |
+| `images/`                     | Images API, Caddy et Litestream : distroless, non root, épinglées par empreinte                               |
+| `bench/`                      | Banc de charge ([résultats](bench/RESULTS.md)) et comparaison des proxys ([proxys](bench/proxies/PROXIES.md)) |
+
+## Sécurité
+
+- **SSH** ouvert à Internet, par clé seulement, root interdit. `admin` (clé
+  `desktop-windows`, sudo) pour l'humain ; `deploy` (clés `el-presidente-ci` et
+  `desktop-windows`) limité par `command="docker system dial-stdio"` : l'API Docker, sans
+  shell. La clé d'hôte du serveur est générée par Pulumi et épinglée (pas de « trust on
+  first use »).
+- **Conteneurs** : système de fichiers en lecture seule, aucune capacité,
+  `no-new-privileges`, utilisateurs non root (API et Litestream 65532, Caddy 65533, groupe
+  10000 partagé pour la socket), limites mémoire. Docker : `icc` désactivé, pas de proxy
+  utilisateur, `live-restore`.
+- **Secrets** : venus de l'extérieur dans ESC (Hetzner, OVH, Vercel, Google, VAPID, clé de
+  la CI) ; générés par Pulumi (`BETTER_AUTH_SECRET`, `METRICS_TOKEN`, mot de passe de la
+  Storage Box, clé d'hôte), chiffrés dans l'état. Ils ne vivent que dans l'environnement des
+  conteneurs. Trois règles en découlent :
+  1. pas de sauvegarde ni d'instantané Hetzner du serveur (jetable ; les données sont sur
+     le volume et dans la Storage Box) ;
+  2. aucun secret journalisé (environnement lu une fois par Zod, journal sans environnement) ;
+  3. l'API ne lance aucun processus enfant.
+- Le service de métadonnées Hetzner (qui contient la clé d'hôte SSH) n'est accessible qu'à root.
+
+## Données
+
+- SQLite en WAL, `synchronous = NORMAL` : un arrêt de l'API ne perd rien ; une coupure de
+  courant peut perdre les toutes dernières transactions, jamais corrompre la base.
+- Litestream envoie le WAL chaque seconde, un instantané par jour, gardé 7 jours.
+- **Remplacement du serveur** (changement de cloud-init) : le volume est détaché puis
+  rattaché, rien à restaurer.
+- **Sinistre** (volume perdu) : au déploiement suivant, le conteneur de restauration
+  reconstruit la base depuis la Storage Box avant le démarrage de l'API.
 
 ## Mise en place (une fois)
 
-1. **Hetzner**
-   - Réseau privé `10.0.0.0/16` : n°1 = `10.0.0.2`, n°2 = `10.0.0.3`.
-   - Pare-feu Hetzner : n°1 → 22 (votre IP), 80, 443 ; n°2 → 22 (votre IP) seulement.
-     Postgres n'a **aucun** port public (le standby passe par le réseau privé).
-2. **DNS** (zone `chegdali.fr`) : `el-presidente` → CNAME Vercel ; `api.el-presidente` → A/AAAA de n°1.
-3. **Google OAuth** : client « Application Web », redirection autorisée
-   `https://api.el-presidente.chegdali.fr/api/auth/callback/google`.
-4. **Sur chaque serveur** (root) : cloner le dépôt dans `/srv/presidente/app`, puis
-   `ROLE=primary ./infra/system/bootstrap.sh` (ou `ROLE=standby`). Ajouter la clé SSH de
-   déploiement dans `/home/deploy/.ssh/authorized_keys`.
-5. **Secrets** (n°1) dans `/etc/presidente/` (mode 600) : `pg_superuser`, `pg_app`,
-   `pg_replicator`, et `api.env` (modèle : `primary/api.env.example`, qui indique comment
-   générer chaque valeur). Copier `pg_replicator` sur n°2.
-6. **Certificat Postgres** (réplication en SSL) : `infra/primary/certs/postgres/server.{crt,key}`
-   (auto-signé suffit, propriétaire 999, clé en 600), copié à l'identique sur n°2.
-7. **GitHub** : environnement `production` avec `DEPLOY_SSH_KEY`, `DEPLOY_HOST`,
-   `DEPLOY_KNOWN_HOSTS`. Lancer une première fois le workflow « Déploiement de l'API » en
-   décochant « Déployer » : il publie seulement l'image sur GHCR. Le paquet GHCR est privé par
-   défaut : le rendre public, ou faire `docker login ghcr.io` sur n°1 avec un jeton
-   `read:packages`.
-8. **Primaire**, dans cet ordre. HAProxy répond lui-même au défi ACME, il doit donc tourner
-   avant l'émission du certificat ; comme il ne démarre pas sans certificat, on lui en donne
-   d'abord un temporaire.
+1. **Environnement ESC `el-presidente/prod`** :
 
-   ```sh
-   cd /srv/presidente/app/infra/primary
-   docker compose up -d postgres
-   EMAIL=… acme/issue.sh register          # ajouter la ligne ACME_THUMBPRINT=… affichée dans .env
-   acme/issue.sh placeholder               # certificat auto-signé temporaire
-   docker compose run --rm --no-deps api migrate
-   docker compose up -d haproxy            # démarre aussi l'API
-   DOMAIN=api.el-presidente.chegdali.fr acme/issue.sh issue
-   docker compose restart haproxy          # retire le certificat temporaire
+   ```yaml
+   values:
+     pulumiConfig:
+       hcloud:token: { fn::secret: … }
+       ovh:endpoint: ovh-eu
+       ovh:applicationKey: …
+       ovh:applicationSecret: { fn::secret: … }
+       ovh:consumerKey: { fn::secret: … } # droits limités à /domain/zone/chegdali.fr/*
+       vercel:apiToken: { fn::secret: … }
+       el-presidente:googleClientId: { fn::secret: … }
+       el-presidente:googleClientSecret: { fn::secret: … }
+       el-presidente:vapidPublicKey: …
+       el-presidente:vapidPrivateKey: { fn::secret: … }
+     environmentVariables:
+       CI_SSH_KEY: { fn::secret: … } # clé privée de `el-presidente-ci`
    ```
 
-9. **Standby** : `PRIMARY_IP=10.0.0.2 standby/init-standby.sh`, `docker compose up -d`,
-   puis `backup/install.sh`.
-10. **Vercel** : projet sur `apps/web` (voir `apps/web/vercel.json`, région `arn1`),
-    variable `NEXT_PUBLIC_API_URL=https://api.el-presidente.chegdali.fr`, domaine
-    `el-presidente.chegdali.fr`. Si le projet existait déjà, retirer les variables Supabase.
-11. **Vérifier la production** : connexion Google, partie réelle sur plusieurs appareils,
-    port 5432 injoignable depuis Internet (`nc -vz <ip publique> 5432`), restauration d'une
-    sauvegarde.
-12. **Ancien projet Supabase** : le supprimer (ou le mettre en pause) une fois la bascule faite.
+2. **Pulumi Cloud** : politique OIDC de GitHub limitée au sujet
+   `repo:mchegdali/el-presidente:environment:production` ; environnement GitHub `production`
+   limité à la branche `main`.
+3. **Google OAuth** : client « Application Web », redirection autorisée
+   `https://api.el-presidente.chegdali.fr/api/auth/callback/google`.
+4. **`Pulumi.prod.yaml`** : renseigner `acmeEmail`.
+5. **Premier déploiement**, depuis un poste (`GHCR_TOKEN` : jeton `read:packages`) :
+
+   ```sh
+   cd infra
+   pulumi up --stack prod          # tout, sauf Litestream (avertissement : pas encore de réplication)
+   ssh-keyscan -p 23 <serveur de la Storage Box>    # comparer à l'empreinte de la console Hetzner
+   pulumi config set --stack prod storageBoxHostKey "ssh-ed25519 AAAA…"
+   pulumi up --stack prod          # ajoute la restauration (sans effet : la base existe) et Litestream
+   ```
+
+   Le serveur de la Storage Box est dans la console Hetzner (sous-compte `litestream`).
+
+   Ensuite, chaque push sur `main` déploie (`.github/workflows/deploy.yml`).
 
 ## Exploitation
 
-- **Déployer l'API** : workflow « Déploiement de l'API » (image GHCR, migrations, redémarrage). Les parties en cours survivent au
-  redémarrage (écriture des manches en attente à l'arrêt, rechargement au démarrage, échéances
-  de passe automatique restaurées) ; les clients se reconnectent seuls.
-- **Métriques** : `curl -H "Authorization: Bearer $METRICS_TOKEN" --unix-socket
-  /srv/presidente/run/presidente/api.sock http://api.local/metrics` (jamais exposé par HAProxy).
-- **Requêtes lentes** : `pg_stat_statements` et journal (`log_min_duration_statement = 200ms`).
-- **Restaurer une sauvegarde** (testé) : `pg_restore -d <base vide> presidente-<date>.dump`.
-- **Bascule (perte du primaire)** : sur n°2, `docker compose exec -u postgres postgres
-  pg_ctl promote`, puis faire pointer `api.el-presidente` vers n°2 et y lancer la pile
-  `primary/` en réutilisant les données promues. Manuel et documenté : pas de bascule
-  automatique (risque de double primaire sur deux machines seulement).
-
-## Validé dans ce dépôt (en conteneurs)
-
-- Image de l'API construite ; `presidente-api migrate` appliqué par socket Unix.
-- HAProxy (`haproxy -c`) puis en fonctionnement : TLS 1.3 seulement (TLS 1.2 refusé), HTTP/2,
-  défi ACME, `/metrics` bloqué, contrôle de santé, WebSocket jusqu'à l'API par socket Unix.
-- `postgresql.conf` chargé par Postgres 17 (réglages effectifs vérifiés).
-- Réplication : premier démarrage (rôles, slot), `pg_basebackup` en SSL, écriture sur le
-  primaire lue sur le standby, `pg_stat_replication` en `streaming/async`.
-- Sauvegarde `pg_dump` sur le standby, relue (`pg_restore --list`) et restaurée.
-
-Non validé ici (pas d'accès aux serveurs) : `bootstrap.sh` sur Ubuntu 24.04, émission réelle
-du certificat Let's Encrypt, réseau et pare-feu Hetzner, déploiement Vercel.
+```sh
+ssh admin@api.el-presidente.chegdali.fr
+sudo docker ps
+sudo docker logs presidente-api
+sudo docker exec presidente-litestream /usr/local/bin/litestream databases
+```

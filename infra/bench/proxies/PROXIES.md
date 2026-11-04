@@ -1,5 +1,9 @@
 # HAProxy, Caddy, nginx ou Pingora devant l'API
 
+> Mesures faites avec l'API sur Postgres (commit `688873b`). Depuis, la base est SQLite :
+> `compose.yml` et `run.ts` (service `pg`, `migrate`, `TRUNCATE`) sont à adapter avant de
+> relancer le banc. La comparaison des proxys, elle, ne dépend pas de la base.
+
 ## Méthode
 
 - **Serveur testé** : vrai CX23 Hetzner (hel1-dc2), 2 vCPU AMD EPYC-Rome partagés, 3,8 Go,

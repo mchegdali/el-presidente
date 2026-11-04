@@ -7,9 +7,20 @@ cd "$(dirname "$0")"
 apt-get update -q
 DEBIAN_FRONTEND=noninteractive apt-get install -yq docker.io docker-compose-v2 openssl
 
-# Mêmes réglages noyau que la cible (infra/system/99-presidente.conf), sans les pages
-# énormes réservées à Postgres (le banc garde la configuration Postgres par défaut).
-grep -v -E '^vm\.nr_hugepages' ../../system/99-presidente.conf > /etc/sysctl.d/99-presidente.conf
+# Mêmes réglages noyau que la cible (infra/src/cloud-init.ts), recopiés ici.
+cat > /etc/sysctl.d/99-presidente.conf <<'SYS'
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+net.ipv4.tcp_notsent_lowat = 16384
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_fastopen = 3
+net.core.somaxconn = 4096
+net.ipv4.tcp_max_syn_backlog = 4096
+net.ipv4.ip_local_port_range = 10240 65535
+fs.file-max = 1048576
+net.ipv4.ip_unprivileged_port_start = 80
+vm.swappiness = 10
+SYS
 sysctl --system >/dev/null
 cat > /etc/security/limits.d/99-presidente.conf <<'LIM'
 * soft nofile 65536
