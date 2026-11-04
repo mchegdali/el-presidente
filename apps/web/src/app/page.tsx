@@ -16,6 +16,8 @@ export default function Home() {
         <Rules />
         <p style={{ textAlign: 'center', margin: '18px 0' }}>
           <Link href="/cartes">Voir toutes les cartes</Link>
+          {' · '}
+          <Link href="/confidentialite">Confidentialité</Link>
         </p>
       </Page>
     </>

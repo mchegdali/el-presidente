@@ -1,0 +1,86 @@
+@layer components {
+  .doc {
+    max-width: 72ch;
+    margin-inline: auto;
+    line-height: 1.55;
+
+    & h2 {
+      font-size: 1.3rem;
+      margin: 28px 0 8px;
+    }
+
+    & a {
+      color: var(--crema);
+    }
+
+    & ul {
+      padding-inline-start: 1.2em;
+    }
+
+    & li + li {
+      margin-block-start: 6px;
+    }
+  }
+
+  .header {
+    margin-block-end: 16px;
+
+    & h1 {
+      font-size: 2.4rem;
+      margin: 8px 0 4px;
+    }
+  }
+
+  .back {
+    color: var(--crema);
+    text-decoration: none;
+    opacity: 0.8;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+
+    & th,
+    & td {
+      text-align: start;
+      vertical-align: top;
+      padding: 8px;
+      border-block-end: 1px solid color-mix(in srgb, var(--crema) 25%, transparent);
+    }
+
+    & th {
+      font-weight: 600;
+    }
+  }
+
+  /* Téléphones : une ligne du tableau devient un bloc. */
+  @media (width < 600px) {
+    .table {
+      & thead {
+        display: none;
+      }
+
+      & tr,
+      & td {
+        display: block;
+      }
+
+      & td {
+        border: 0;
+        padding: 2px 0;
+      }
+
+      & td:first-child {
+        font-weight: 600;
+        padding-block-start: 12px;
+      }
+
+      & tr {
+        border-block-end: 1px solid color-mix(in srgb, var(--crema) 25%, transparent);
+        padding-block-end: 10px;
+      }
+    }
+  }
+}

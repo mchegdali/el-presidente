@@ -7,6 +7,7 @@ import { createApp } from './app';
 import { createAuth } from './features/auth/auth';
 import { chatLimiter } from './features/chat/send-message/handler';
 import { onTurnDeadline, restoreDeadlines } from './features/game/turn-timeout/handler';
+import { purgeExpired } from './features/privacy/purge';
 import { createPushSender, type PushSender } from './features/push/sender';
 import { GameWriter } from './features/tables/shared/game-writer';
 import { TableStore } from './features/tables/shared/store';
@@ -98,6 +99,19 @@ export async function startServer(options: ServerOptions) {
   }, 60_000);
   maintenance.unref?.();
 
+  // Durées de conservation (page /confidentialite du site) : au démarrage, puis toutes les heures.
+  const purge = () => {
+    try {
+      const n = purgeExpired(db, now());
+      if (n.messages + n.sessions + n.verifications > 0) log.info('purge', n);
+    } catch (error) {
+      log.error('purge', { error: String(error) });
+    }
+  };
+  purge();
+  const purgeTimer = setInterval(purge, 60 * 60_000);
+  purgeTimer.unref?.();
+
   log.info('API prête', { listen: env.LISTEN_UNIX ?? server.port });
 
   return {
@@ -107,6 +121,7 @@ export async function startServer(options: ServerOptions) {
     auth,
     async stop() {
       clearInterval(maintenance);
+      clearInterval(purgeTimer);
       deps.scheduler.stop();
       shedder?.stop();
       server.stop(true);
