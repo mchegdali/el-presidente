@@ -47,6 +47,7 @@ téléphones et ordinateurs. On se connecte avec Google, on crée une table, on 
 - Une table inexistante ou fermée renvoie à l'accueil avec le seul message « Cette table
   n'existe pas. ». Une table sans activité depuis 30 jours est fermée (joueurs et manche
   effacés ; ses messages restent un an, obligation LCEN).
+- Le lien d'une table s'affiche avec une image d'aperçu (Open Graph) dans les messageries.
 
 ## Architecture
 

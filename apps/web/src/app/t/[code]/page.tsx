@@ -8,9 +8,19 @@ import { API_WS_URL } from '@/lib/config';
 
 type Props = { params: Promise<{ code: string }> };
 
+const INVITE = {
+  title: 'On vous attend à la table ! — El Presidente',
+  description: '¡Ven a jugar! Rejoignez la partie de Président : un compte Google suffit, rien à installer.',
+};
+
+// Un `openGraph` de page remplace entièrement celui du parent, image comprise : tout est
+// repris ici (image : app/opengraph-image.png).
+const IMAGE = { url: '/opengraph-image.png', width: 1200, height: 630, alt: 'El Presidente' };
 export const metadata: Metadata = {
   title: 'Table — El Presidente',
-  description: '¡Ven a jugar! Rejoignez la partie de Président.',
+  description: INVITE.description,
+  openGraph: { ...INVITE, type: 'website', siteName: 'El Presidente', locale: 'fr_FR', images: [IMAGE] },
+  twitter: { ...INVITE, card: 'summary_large_image', images: [IMAGE] },
 };
 
 /**

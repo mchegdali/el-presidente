@@ -7,9 +7,17 @@ import CardDefs from '@/components/PlayingCard/CardDefs';
 import { API_URL } from '@/lib/config';
 import { Providers } from '@/lib/query-client';
 
+// Adresse publique du site, pour les URL absolues des aperçus de liens (Open Graph).
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : 'http://localhost:3000';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'El Presidente — le jeu du Président',
   description: 'Jouez au Président entre amis, en temps réel, depuis vos téléphones. ¡Viva El Presidente!',
+  openGraph: { type: 'website', siteName: 'El Presidente', locale: 'fr_FR' },
+  twitter: { card: 'summary_large_image' },
   appleWebApp: { capable: true, title: 'El Presidente', statusBarStyle: 'black-translucent' },
 };
 
