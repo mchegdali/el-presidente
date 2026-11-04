@@ -81,6 +81,8 @@ export class TableStore {
             .from(messages)
             .where(eq(messages.lobbyId, lobby.id)),
         ]);
+        // Table abandonnée, vidée par la purge (sa ligne ne garde que ses messages) : fermée.
+        if (rows.length === 0) return null;
         // Une autre requête a pu charger la table pendant la lecture.
         const existing = this.tables.get(code);
         if (existing !== undefined) return existing;

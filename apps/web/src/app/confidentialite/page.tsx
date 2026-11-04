@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Confidentialité — El Presidente' 
 // Responsable du traitement et contact affichés sur la page.
 const RESPONSABLE = 'Moustapha Chegdali';
 const CONTACT = 'contact@chegdali.fr';
-const MISE_A_JOUR = '4 novembre 2026';
+const MISE_A_JOUR = '5 novembre 2026';
 
 // Chaque durée annoncée ici est appliquée par le code (apps/api/src/features/privacy/purge.ts,
 // durée des sessions dans apps/api/src/features/auth/auth.ts) : les garder alignés.
@@ -58,7 +58,10 @@ export default function PrivacyPage() {
             <tr>
               <td>Tables : pseudo choisi, place, rôle, état des manches</td>
               <td>Faire fonctionner les parties</td>
-              <td>Tant que le compte existe</td>
+              <td>
+                Jusqu&apos;à 30 jours après la dernière activité de la table (coup, réglage ou message), puis supprimées
+                ; ou dès que vous la quittez
+              </td>
             </tr>
             <tr>
               <td>Messages du chat, avec le pseudo et l&apos;adresse IP de l&apos;auteur</td>

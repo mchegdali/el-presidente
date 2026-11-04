@@ -182,6 +182,20 @@ describe('table et joueurs', () => {
     const r = await t.host.api.tables[':code'].$get({ param: { code: t.code } });
     expect(r.status).toBe(404);
   });
+
+  test('le dernier qui part ferme la table, mais ses messages restent (LCEN)', async () => {
+    const t = await setupTable(1);
+    const c = await t.host.connect(t.code);
+    await c.snapshot();
+    expect((await c.request({ op: 'chat', req: 0, body: 'adieu' })).op).toBe('ack');
+    c.close();
+    await t.host.api.tables[':code'].leave.$post({ param: { code: t.code } });
+    // La ligne vide reste en base, mais la table n'est plus chargée (retirée de la mémoire).
+    expect(s.deps.tables.cached(t.code)).toBeUndefined();
+    expect((await t.host.api.tables[':code'].$get({ param: { code: t.code } })).status).toBe(404);
+    const kept = s.deps.db.select().from(schema.messages).where(eq(schema.messages.body, 'adieu')).all();
+    expect(kept.length).toBe(1);
+  });
 });
 
 describe('temps réel', () => {

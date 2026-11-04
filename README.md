@@ -39,7 +39,8 @@ téléphones et ordinateurs. On se connecte avec Google, on crée une table, on 
   une notification sur vos appareils abonnés. Sur iPhone, il faut d'abord ajouter le site à
   l'écran d'accueil.
 - Une table inexistante ou fermée renvoie à l'accueil avec le seul message « Cette table
-  n'existe pas. ».
+  n'existe pas. ». Une table sans activité depuis 30 jours est fermée (joueurs et manche
+  effacés ; ses messages restent un an, obligation LCEN).
 
 ## Architecture
 

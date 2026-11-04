@@ -102,8 +102,9 @@ export async function startServer(options: ServerOptions) {
   // Durées de conservation (page /confidentialite du site) : au démarrage, puis toutes les heures.
   const purge = () => {
     try {
-      const n = purgeExpired(db, now());
-      if (n.messages + n.sessions + n.verifications > 0) log.info('purge', n);
+      const live = new Set(Array.from(deps.tables.all(), (t) => t.id));
+      const n = purgeExpired(db, now(), live);
+      if (n.messages + n.sessions + n.verifications + n.tables > 0) log.info('purge', n);
     } catch (error) {
       log.error('purge', { error: String(error) });
     }

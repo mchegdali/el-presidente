@@ -1,6 +1,6 @@
 import { schema } from '@el-presidente/db';
 import { Result } from 'better-result';
-import { and, eq } from '@el-presidente/db';
+import { and, eq, notExists, sql } from '@el-presidente/db';
 import type { Deps } from '../../../shared/deps';
 import { dbError, notMember, type AppError } from '../../../shared/errors';
 import type { CurrentUser } from '../../auth/session';
@@ -8,7 +8,7 @@ import { dropRound } from '../../game/cancel-round/handler';
 import { lobbyChanged } from '../shared/lobby-changed';
 import type { Table } from '../shared/table';
 
-const { lobbies, players } = schema;
+const { lobbies, messages, players } = schema;
 
 /**
  * Retire un joueur de la table (départ ou exclusion). La manche en cours est annulée ;
@@ -32,8 +32,24 @@ export async function removePlayer(
         tx.delete(players)
           .where(and(eq(players.lobbyId, table.id), eq(players.userId, userId)))
           .run();
-        if (rest.length === 0) tx.delete(lobbies).where(eq(lobbies.id, table.id)).run();
-        else tx.update(lobbies).set({ hostId: host }).where(eq(lobbies.id, table.id)).run();
+        // Dernier joueur parti : la table disparaît. Ses messages doivent rester un an (LCEN) :
+        // s'il y en a, la ligne reste, vide (la table n'existe plus pour le site), et la purge
+        // la supprime après l'expiration du dernier message.
+        if (rest.length === 0) {
+          tx.delete(lobbies)
+            .where(
+              and(
+                eq(lobbies.id, table.id),
+                notExists(
+                  tx
+                    .select({ one: sql`1` })
+                    .from(messages)
+                    .where(eq(messages.lobbyId, table.id)),
+                ),
+              ),
+            )
+            .run();
+        } else tx.update(lobbies).set({ hostId: host }).where(eq(lobbies.id, table.id)).run();
       }),
     catch: dbError,
   });

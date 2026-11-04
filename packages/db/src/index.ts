@@ -55,4 +55,4 @@ export function createDatabase(path: string) {
 }
 
 // Opérateurs Drizzle ré-exportés : une seule copie de drizzle-orm dans le monorepo.
-export { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, max, or, sql } from 'drizzle-orm';
+export { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, max, notExists, or, sql } from 'drizzle-orm';
