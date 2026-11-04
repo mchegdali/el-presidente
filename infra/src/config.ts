@@ -5,6 +5,17 @@ import * as pulumi from '@pulumi/pulumi';
 
 const cfg = new pulumi.Config();
 
+/** Une seule ligne « <algorithme> <base64> » (sortie de ssh-keyscan sans hôte ni commentaire). */
+function hostKeyLine(value: string | undefined): string | undefined {
+  if (
+    value !== undefined &&
+    !/^(ecdsa-sha2-nistp(256|384|521)|ssh-ed25519|rsa-sha2-(256|512)|ssh-rsa) [A-Za-z0-9+/]+={0,2}$/.test(value)
+  ) {
+    throw new Error('storageBoxHostKey : attendu « <algorithme> <base64> » sur une ligne (voir src/config.ts).');
+  }
+  return value;
+}
+
 export const config = {
   stack: pulumi.getStack(),
   location: cfg.get('location') ?? 'hel1',
@@ -25,11 +36,14 @@ export const config = {
   /** Annuaire ACME : production par défaut, staging pour une pile de test. */
   acmeCa: cfg.get('acmeCa'),
   /**
-   * Clé d'hôte SSH de la Storage Box (« ssh-ed25519 AAAA… »). Hetzner ne la publie pas :
-   * relevée une fois (`ssh-keyscan -p 23 <serveur>`), comparée à l'empreinte affichée
-   * dans la console Hetzner, puis enregistrée ici. Sans elle, pas de réplication.
+   * Clé d'hôte SSH de la Storage Box, commune à toutes les Storage Box. La clé **ECDSA** :
+   * Litestream ne restreint pas l'algorithme et le client SSH de Go choisit ECDSA avant
+   * ed25519 (une autre clé épinglée donne « host key mismatch »). Relevée une fois
+   * (`ssh-keyscan -p 23 -t ecdsa <serveur>`), comparée à l'empreinte publiée par Hetzner
+   * (docs.hetzner.com/storage/storage-box/general : SHA256:oDHZqKXn…O5c), puis enregistrée
+   * dans Pulumi.<pile>.yaml. Sans elle, pas de réplication.
    */
-  storageBoxHostKey: cfg.get('storageBoxHostKey'),
+  storageBoxHostKey: hostKeyLine(cfg.get('storageBoxHostKey')),
 
   /** Images publiées par la CI, par empreinte (ghcr.io/…@sha256:…). */
   images: cfg.requireObject<{ api: string; caddy: string; litestream: string }>('images'),

@@ -77,13 +77,16 @@ const hardened = {
 
 const bind = (source: string, target: string) => ({ type: 'bind', source, target });
 
+/** Mémoire en Mo, sans swap (sinon Docker fixe le swap au double, vu comme une dérive). */
+const limit = (mb: number) => ({ memory: mb, memorySwap: mb });
+
 // Sans clé d'hôte vérifiée, pas de connexion à la Storage Box : réplication et restauration
 // attendent qu'elle soit enregistrée (premier déploiement, voir infra/README.md).
 const hostKeyKnown = config.storageBoxHostKey !== undefined;
 if (!hostKeyKnown) {
   pulumi.log.warn(
     "storageBoxHostKey manquante : AUCUNE réplication de la base. Relever la clé d'hôte de la " +
-      'Storage Box (voir src/config.ts), `pulumi config set storageBoxHostKey "ssh-ed25519 AAAA…"`, puis `pulumi up`.',
+      'Storage Box (voir src/config.ts), `pulumi config set storageBoxHostKey "ecdsa-sha2-nistp521 AAAA…"`, puis `pulumi up`.',
   );
 }
 const litestreamEnv = pulumi
@@ -154,7 +157,7 @@ const api = new docker.Container(
     image: images.api,
     envs: apiEnv,
     mounts: [bind('/data/db', '/data/db'), bind('/run/presidente', '/run/presidente')],
-    memory: 1536,
+    ...limit(1536),
     restart: 'unless-stopped',
     // Le temps d'écrire les manches en attente et de fermer la base.
     stopTimeout: 30,
@@ -171,7 +174,7 @@ if (hostKeyKnown) {
       image: images.litestream,
       envs: litestreamEnv,
       mounts: [bind('/data/db', '/data/db')],
-      memory: 256,
+      ...limit(256),
       restart: 'unless-stopped',
     },
     { ...opts, dependsOn: [api] },
@@ -192,7 +195,7 @@ new docker.Container(
       ...(config.acmeCa ? [`ACME_CA=${config.acmeCa}`] : []),
     ],
     mounts: [bind('/data/caddy', '/data'), bind('/run/presidente', '/run/presidente')],
-    memory: 256,
+    ...limit(256),
     restart: 'unless-stopped',
   },
   { ...opts, dependsOn: [api] },

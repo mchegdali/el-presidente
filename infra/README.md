@@ -100,8 +100,8 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
    ```sh
    cd infra
    pulumi env run mchegdali/el-presidente/ghcr -- pulumi up --stack prod   # tout, sauf Litestream (avertissement : pas encore de réplication)
-   ssh-keyscan -p 23 <serveur de la Storage Box>    # comparer à l'empreinte de la console Hetzner
-   pulumi config set --stack prod storageBoxHostKey "ssh-ed25519 AAAA…"
+   ssh-keyscan -p 23 -t ecdsa <serveur de la Storage Box>   # empreinte publiée par Hetzner : SHA256:oDHZqKXnoMtgvPBjjC57pcuFez28roaEuFcfwyg8O5c
+   pulumi config set --stack prod storageBoxHostKey "ecdsa-sha2-nistp521 AAAA…"
    pulumi env run mchegdali/el-presidente/ghcr -- pulumi up --stack prod   # ajoute la restauration (sans effet : la base existe) et Litestream
    ```
 
