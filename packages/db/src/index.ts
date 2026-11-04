@@ -1,6 +1,7 @@
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import * as schema from './schema';
 
@@ -11,7 +12,7 @@ export type * from './schema';
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 /** Dossier des migrations (surchargé dans l'image Docker, où le binaire est compilé). */
-export const MIGRATIONS_FOLDER = process.env.MIGRATIONS_DIR ?? new URL('../drizzle', import.meta.url).pathname;
+export const MIGRATIONS_FOLDER = process.env.MIGRATIONS_DIR ?? fileURLToPath(new URL('../drizzle', import.meta.url));
 
 export interface DatabaseOptions {
   /**
