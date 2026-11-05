@@ -62,8 +62,8 @@ export async function startServer(options: ServerOptions) {
   const app = createApp(deps, auth, {
     env,
     shedder,
-    directIp: (req, server) =>
-      (server as { requestIP?: (r: Request) => { address: string } | null }).requestIP?.(req)?.address ?? null,
+    directAddress: (req, server) =>
+      (server as { requestIP?: (r: Request) => { address: string; port: number } | null }).requestIP?.(req) ?? null,
     gauges: () => ({
       presidente_tables_loaded: [...deps.tables.all()].length,
       presidente_connections: hub.connections,

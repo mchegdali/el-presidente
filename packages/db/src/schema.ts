@@ -174,8 +174,9 @@ export const messages = sqliteTable(
     userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
     name: text('name').notNull(),
     body: text('body').notNull(),
-    /** Adresse de l'auteur (LCEN). */
+    /** Adresse et port source de l'auteur (LCEN, décret n° 2021-1362). */
     ip: text('ip'),
+    port: integer('port'),
     createdAt: createdAt(),
   },
   (t) => [

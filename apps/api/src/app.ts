@@ -32,8 +32,8 @@ const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 export interface AppOptions {
   env: Pick<Env, 'WEB_ORIGIN' | 'API_ORIGIN' | 'TRUST_PROXY' | 'METRICS_TOKEN' | 'ENABLE_TEST_LOGIN' | 'NODE_ENV'>;
   shedder?: Shedder | null;
-  /** Adresse du client quand la requête ne passe pas par Caddy. */
-  directIp?: (req: Request, server: unknown) => string | null;
+  /** Adresse et port du client quand la requête ne passe pas par Caddy. */
+  directAddress?: (req: Request, server: unknown) => { address: string; port: number } | null;
   gauges?: () => Record<string, number>;
 }
 
@@ -60,10 +60,16 @@ export function createApp(deps: Deps, auth: Auth, options: AppOptions) {
       }),
     )
     .use(async (c, next) => {
-      c.set(
-        'ip',
-        env.TRUST_PROXY ? (c.req.header('x-real-ip') ?? null) : (options.directIp?.(c.req.raw, c.env) ?? null),
-      );
+      if (env.TRUST_PROXY) {
+        // Posés par Caddy, qui écrase toute valeur envoyée par le client.
+        const port = Number(c.req.header('x-real-port'));
+        c.set('ip', c.req.header('x-real-ip') ?? null);
+        c.set('port', Number.isInteger(port) && port > 0 && port <= 65535 ? port : null);
+      } else {
+        const direct = options.directAddress?.(c.req.raw, c.env) ?? null;
+        c.set('ip', direct?.address ?? null);
+        c.set('port', direct?.port ?? null);
+      }
       // Requêtes qui modifient l'état : seulement depuis le site (protection CSRF).
       if (!SAFE.has(c.req.method)) {
         const origin = c.req.header('origin');

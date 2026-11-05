@@ -5,7 +5,13 @@ import type { AuthVariables, CurrentUser } from '../features/auth/session';
 import { Invalid } from './errors';
 import { fail } from './http';
 
-export type AppEnv = { Variables: AuthVariables & { me: CurrentUser; ip: string | null } };
+/** Adresse et port source du client (identification des auteurs de messages, LCEN). */
+export interface ClientAddress {
+  ip: string | null;
+  port: number | null;
+}
+
+export type AppEnv = { Variables: AuthVariables & { me: CurrentUser; ip: string | null; port: number | null } };
 
 export const router = () => new Hono<AppEnv>();
 

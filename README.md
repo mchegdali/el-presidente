@@ -74,7 +74,7 @@ infra/           Pulumi (Hetzner, OVH, Vercel), images API/Caddy/Litestream, ban
 - **Sécurité** : comptes Google (better-auth), cookie `HttpOnly` partagé entre le site et
   l'API, origine vérifiée sur toute requête qui modifie l'état et à l'ouverture des
   WebSockets, entrées validées (Zod / décodeur binaire borné), limites de débit, CSP. Les
-  messages du chat gardent leur auteur et son adresse (LCEN), et peuvent être signalés.
+  messages du chat gardent leur auteur, son adresse IP et son port source (LCEN), et peuvent être signalés.
 
 Déploiement et exploitation : [`infra/README.md`](infra/README.md).
 

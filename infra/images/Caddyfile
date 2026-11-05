@@ -33,5 +33,7 @@
 	reverse_proxy unix//run/presidente/api.sock {
 		# Adresse réelle du client, écrasant toute valeur envoyée par le client.
 		header_up X-Real-IP {remote_host}
+		# Port source : l'adresse seule ne désigne pas un abonné derrière un NAT partagé (4G).
+		header_up X-Real-Port {remote_port}
 	}
 }

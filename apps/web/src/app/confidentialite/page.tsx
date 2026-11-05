@@ -64,7 +64,7 @@ export default function PrivacyPage() {
               </td>
             </tr>
             <tr>
-              <td>Messages du chat, avec le pseudo et l&apos;adresse IP de l&apos;auteur</td>
+              <td>Messages du chat, avec le pseudo, l&apos;adresse IP et le port de connexion de l&apos;auteur</td>
               <td>Le chat ; l&apos;identification des auteurs est une obligation légale (LCEN, art. 6)</td>
               <td>1 an, puis supprimés automatiquement</td>
             </tr>
@@ -116,7 +116,8 @@ export default function PrivacyPage() {
           Vous pouvez demander l&apos;accès à vos données, leur correction, leur suppression (suppression du compte,
           avec ses sessions, tables et abonnements) ou leur export, et vous opposer à leur traitement : écrivez à {mail}
           . Réponse sous un mois. Les messages envoyés dans le chat sont détachés du compte mais gardés, avec leur
-          pseudo et leur adresse IP, jusqu&apos;à leur suppression au bout d&apos;un an (obligation légale ci-dessus).
+          pseudo, leur adresse IP et leur port de connexion, jusqu&apos;à leur suppression au bout d&apos;un an
+          (obligation légale ci-dessus).
         </p>
         <p>
           En cas de désaccord, vous pouvez saisir la{' '}

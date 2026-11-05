@@ -31,7 +31,7 @@ export const upgradeRoute = (deps: Deps, allowedOrigins: readonly string[], shed
       code: table.value.code,
       active: c.req.query('active') !== '0',
       member: false,
-      ip: c.get('ip'),
+      from: { ip: c.get('ip'), port: c.get('port') },
     };
     if (!server.upgrade(c.req.raw, { data })) return c.text('Échec de la connexion WebSocket', 400);
     return new Response(null);

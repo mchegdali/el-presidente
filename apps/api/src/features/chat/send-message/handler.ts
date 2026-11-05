@@ -3,6 +3,7 @@ import type { ChatMessage } from '@el-presidente/game/protocol';
 import { Result } from 'better-result';
 import type { Deps } from '../../../shared/deps';
 import { dbError, Invalid, notMember, RateLimited, type AppError } from '../../../shared/errors';
+import type { ClientAddress } from '../../../shared/hono';
 import { RateLimiter } from '../../../shared/rate-limit';
 import type { Table } from '../../tables/shared/table';
 
@@ -17,7 +18,7 @@ export async function sendMessage(
   table: Table,
   userId: string,
   rawBody: string,
-  ip: string | null,
+  from: ClientAddress,
 ): Promise<Result<ChatMessage, AppError>> {
   const seat = table.seatOf(userId);
   if (seat < 0) return Result.err(notMember());
@@ -37,7 +38,7 @@ export async function sendMessage(
     try: () =>
       deps.db
         .insert(messages)
-        .values({ lobbyId: table.id, userId, name, body, ip })
+        .values({ lobbyId: table.id, userId, name, body, ip: from.ip, port: from.port })
         .returning({ id: messages.id, at: messages.createdAt }),
     catch: dbError,
   });

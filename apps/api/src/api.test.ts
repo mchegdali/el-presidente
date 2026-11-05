@@ -421,6 +421,10 @@ describe('chat et emotes', () => {
     expect((await sockets[0]!.request({ op: 'chat', req: 0, body: '  ¡Hola! 🌶️  ' })).op).toBe('ack');
     const got = await sockets[2]!.next((m): m is Extract<ServerMessage, { op: 'chat' }> => m.op === 'chat');
     expect(got.message).toMatchObject({ body: '¡Hola! 🌶️', name: 'Ana', p: t.users[0]!.userId });
+    // Auteur identifiable : adresse et port source enregistrés avec le message (LCEN).
+    const row = s.deps.db.select().from(schema.messages).where(eq(schema.messages.id, got.message.id)).get()!;
+    expect(row.ip).toBeTruthy();
+    expect(row.port).toBeGreaterThan(0);
     await sockets[1]!.request({ op: 'chat', req: 0, body: '@Ana à toi' });
 
     let history = await json<unknown>(

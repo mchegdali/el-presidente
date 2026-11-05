@@ -15,6 +15,13 @@
       "when": 1793835580391,
       "tag": "0001_no_two_finish",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793838287619,
+      "tag": "0002_message_port",
+      "breakpoints": true
     }
   ]
 }

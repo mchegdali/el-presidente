@@ -14,14 +14,15 @@ import { setPresence } from '../features/presence/handler';
 import type { Table } from '../features/tables/shared/table';
 import type { Deps } from '../shared/deps';
 import type { AppError } from '../shared/errors';
+import type { ClientAddress } from '../shared/hono';
 import { log } from '../shared/logger';
 import { metrics } from '../shared/metrics';
 import { RateLimiter } from '../shared/rate-limit';
 import type { SocketData } from './hub';
 
 export interface SocketContext extends SocketData {
-  /** Adresse du client (journal du chat). */
-  ip: string | null;
+  /** Adresse et port source du client (auteurs des messages du chat). */
+  from: ClientAddress;
 }
 
 // Un coup par 50 ms en moyenne, rafales de 10 : largement au-dessus d'un humain.
@@ -102,7 +103,7 @@ export function createSocketHandler(deps: Deps): WebSocketHandler<SocketContext>
         sendEmote(deps, table, ws.data.userId, msg.emote);
         return;
       case 'chat':
-        sendMessage(deps, table, ws.data.userId, msg.body, ws.data.ip)
+        sendMessage(deps, table, ws.data.userId, msg.body, ws.data.from)
           .then((r) => reply(ws, msg.req, r))
           .catch((error) => log.error('chat', { error: String(error) }));
         return;
