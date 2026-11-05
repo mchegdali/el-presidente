@@ -25,3 +25,6 @@ dbs:
       host-key: ${STORAGE_BOX_HOST_KEY}
       path: presidente
       sync-interval: 1s
+
+# Métriques Prometheus pour VictoriaMetrics (réseau Docker presidente-monitoring seulement).
+addr: ':9090'

@@ -25,6 +25,9 @@ jobs:
       api: ${{ steps.api.outputs.digest }}
       caddy: ${{ steps.caddy.outputs.digest }}
       litestream: ${{ steps.litestream.outputs.digest }}
+      victoriametrics: ${{ steps.victoriametrics.outputs.digest }}
+      vmalert: ${{ steps.vmalert.outputs.digest }}
+      node-exporter: ${{ steps.node-exporter.outputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,6 +58,27 @@ jobs:
           file: infra/images/litestream.Dockerfile
           push: true
           tags: ghcr.io/mchegdali/el-presidente-litestream:${{ github.sha }}
+      - id: victoriametrics
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: infra/images
+          file: infra/images/victoriametrics.Dockerfile
+          push: true
+          tags: ghcr.io/mchegdali/el-presidente-victoriametrics:${{ github.sha }}
+      - id: vmalert
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: infra/images
+          file: infra/images/vmalert.Dockerfile
+          push: true
+          tags: ghcr.io/mchegdali/el-presidente-vmalert:${{ github.sha }}
+      - id: node-exporter
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: infra/images
+          file: infra/images/node-exporter.Dockerfile
+          push: true
+          tags: ghcr.io/mchegdali/el-presidente-node-exporter:${{ github.sha }}
 
   deploy:
     needs: images
@@ -99,7 +123,7 @@ jobs:
           work-dir: infra
           config-map: |
             el-presidente:images:
-              value: '{"api":"ghcr.io/mchegdali/el-presidente-api@${{ needs.images.outputs.api }}","caddy":"ghcr.io/mchegdali/el-presidente-caddy@${{ needs.images.outputs.caddy }}","litestream":"ghcr.io/mchegdali/el-presidente-litestream@${{ needs.images.outputs.litestream }}"}'
+              value: '{"api":"ghcr.io/mchegdali/el-presidente-api@${{ needs.images.outputs.api }}","caddy":"ghcr.io/mchegdali/el-presidente-caddy@${{ needs.images.outputs.caddy }}","litestream":"ghcr.io/mchegdali/el-presidente-litestream@${{ needs.images.outputs.litestream }}","victoriametrics":"ghcr.io/mchegdali/el-presidente-victoriametrics@${{ needs.images.outputs.victoriametrics }}","vmalert":"ghcr.io/mchegdali/el-presidente-vmalert@${{ needs.images.outputs.vmalert }}","nodeExporter":"ghcr.io/mchegdali/el-presidente-node-exporter@${{ needs.images.outputs.node-exporter }}"}'
               secret: false
         env:
           GHCR_USER: ${{ github.actor }}

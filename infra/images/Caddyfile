@@ -27,7 +27,7 @@
 		-Server
 	}
 
-	# Les métriques ne sortent jamais du serveur.
+	# Les métriques ne sortent jamais du serveur (écoute interne de l'API, réseau de surveillance).
 	respond /metrics 404
 
 	reverse_proxy unix//run/presidente/api.sock {

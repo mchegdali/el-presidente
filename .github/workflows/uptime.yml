@@ -1,0 +1,27 @@
+name: Disponibilité
+
+# Sonde externe : la surveillance du serveur (VictoriaMetrics, vmalert) ne peut pas signaler
+# la panne du serveur lui-même. Toutes les 5 minutes, /health de l'API et la page d'accueil ;
+# en cas d'échec, GitHub envoie un e-mail (échec d'un workflow planifié, au dernier auteur
+# de la planification). Le planificateur de GitHub peut prendre quelques minutes de retard.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      # Deux nouvelles tentatives espacées : pas d'alerte pour un redémarrage de quelques secondes.
+      - name: API
+        run: curl -fsS --retry 2 --retry-delay 15 --retry-all-errors --max-time 10 https://api.el-presidente.chegdali.fr/health
+      - name: Site
+        run: curl -fsS -o /dev/null --retry 2 --retry-delay 15 --retry-all-errors --max-time 10 https://el-presidente.chegdali.fr/

@@ -14,13 +14,17 @@ interface TestContext {
 }
 
 export const testLoginRoute = (auth: Auth) =>
-  router().post('/login', validJson(z.object({ name: z.string().min(1).max(40) })), async (c) => {
-    const ctx = (await auth.$context) as unknown as TestContext;
-    const { name } = c.req.valid('json');
-    const user = await ctx.test.saveUser(
-      ctx.test.createUser({ name, email: `${crypto.randomUUID()}@test.invalid`, emailVerified: true }),
-    );
-    const { headers } = await ctx.test.login({ userId: user.id });
-    const cookie = headers.get('cookie') ?? '';
-    return c.json({ userId: user.id, cookie }, 200);
-  });
+  router().post(
+    '/login',
+    validJson(z.object({ name: z.string().min(1).max(40), email: z.email().optional() })),
+    async (c) => {
+      const ctx = (await auth.$context) as unknown as TestContext;
+      const { name, email } = c.req.valid('json');
+      const user = await ctx.test.saveUser(
+        ctx.test.createUser({ name, email: email ?? `${crypto.randomUUID()}@test.invalid`, emailVerified: true }),
+      );
+      const { headers } = await ctx.test.login({ userId: user.id });
+      const cookie = headers.get('cookie') ?? '';
+      return c.json({ userId: user.id, cookie }, 200);
+    },
+  );

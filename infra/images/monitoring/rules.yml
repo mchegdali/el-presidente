@@ -1,0 +1,60 @@
+# Règles d'alerte de vmalert, évaluées chaque minute. Les alertes partent vers l'API
+# (format Alertmanager), qui les relaie en notifications push aux administrateurs.
+groups:
+  - name: presidente
+    interval: 1m
+    rules:
+      # Sauvegarde : la plus importante, une réplication cassée ne se voit pas autrement.
+      - alert: LitestreamArrete
+        expr: up{job="litestream"} == 0
+        for: 5m
+        annotations:
+          summary: "Litestream ne répond plus depuis 5 minutes : la base n'est plus répliquée."
+      - alert: ReplicationBloquee
+        # Le WAL grossit (écritures) mais rien n'est envoyé à la Storage Box. Le client SFTP de
+        # Litestream 0.5 ne compte pas ses erreurs : on surveille les envois réussis.
+        expr: >-
+          increase(litestream_total_wal_bytes[15m]) > 0
+          unless on() increase(litestream_replica_operation_total{operation="PUT"}[15m]) > 0
+        for: 5m
+        annotations:
+          summary: 'Des écritures depuis 15 minutes, aucun envoi vers la Storage Box.'
+      - alert: LitestreamErreurs
+        expr: increase(litestream_sync_error_count[10m]) > 0 or increase(litestream_checkpoint_error_count[10m]) > 0
+        annotations:
+          summary: 'Erreurs de synchronisation ou de point de contrôle de Litestream.'
+
+      # Serveur.
+      - alert: DisqueDonneesPlein
+        expr: >-
+          1 - node_filesystem_avail_bytes{mountpoint="/host/data"}
+          / node_filesystem_size_bytes{mountpoint="/host/data"} > 0.8
+        for: 10m
+        annotations:
+          summary: 'Volume /data rempli à plus de 80 %.'
+      - alert: MemoireFaible
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.15
+        for: 10m
+        annotations:
+          summary: 'Moins de 15 % de mémoire disponible sur le serveur.'
+
+      # API.
+      - alert: ApiNonCollectee
+        expr: up{job="api"} == 0
+        for: 2m
+        annotations:
+          summary: "VictoriaMetrics ne lit plus les métriques de l'API."
+      - alert: BoucleBloquee
+        expr: presidente_event_loop_lag_ms > 200
+        for: 5m
+        annotations:
+          summary: "Boucle d'événements de l'API en retard de plus de 200 ms."
+      - alert: CoupsLents
+        expr: histogram_quantile(0.99, rate(presidente_move_latency_us_bucket[5m])) > 50000
+        for: 10m
+        annotations:
+          summary: '1 % des coups mettent plus de 50 ms à être diffusés.'
+      - alert: Delestage
+        expr: increase(presidente_connections_shed_total[5m]) > 0
+        annotations:
+          summary: "L'API refuse des connexions (mémoire presque pleine)."

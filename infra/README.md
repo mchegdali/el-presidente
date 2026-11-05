@@ -7,6 +7,10 @@ Navigateur ──HTTPS──▶ Vercel (Next, arn1)
                           └─socket Unix /run/presidente/api.sock─▶ API (Bun, SQLite en WAL)
                         Litestream ── lit le WAL ── SFTP ──▶ Storage Box Hetzner
                         /data      volume Hetzner : base (db/) et certificats (caddy/)
+                        réseau interne presidente-monitoring (sans Internet) :
+                          VictoriaMetrics ◀─ métriques ─ API :9464, Litestream :9090, node_exporter
+                          vmalert ─ alertes ─▶ API :9464 ─ notification push ─▶ administrateurs
+GitHub Actions (toutes les 5 min) ──▶ /health de l'API et page d'accueil ; échec = e-mail
 ```
 
 Tout est décrit en TypeScript avec Pulumi (`runtime: bun`) : serveur, volume, pare-feu,
@@ -21,7 +25,7 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
 | `src/backup.ts`               | Storage Box et sous-compte Litestream (mot de passe généré par Pulumi)                                        |
 | `src/app.ts`                  | Conteneurs par l'API Docker à travers SSH : restauration → API → Litestream → Caddy                           |
 | `src/dns.ts`, `src/vercel.ts` | Enregistrements OVH (A, AAAA, CAA, CNAME) ; `NEXT_PUBLIC_API_URL` et domaine Vercel                           |
-| `images/`                     | Images API, Caddy et Litestream : distroless, non root, épinglées par empreinte                               |
+| `images/`                     | Images API, Caddy, Litestream et surveillance : distroless ou scratch, non root, épinglées par empreinte      |
 | `bench/`                      | Banc de charge ([résultats](bench/RESULTS.md)) et comparaison des proxys ([proxys](bench/proxies/PROXIES.md)) |
 
 ## Sécurité
@@ -75,6 +79,7 @@ main sur le serveur, aucun fichier de secrets sur le serveur.
        el-presidente:googleClientSecret: { fn::secret: … }
        el-presidente:vapidPublicKey: …
        el-presidente:vapidPrivateKey: { fn::secret: … }
+       el-presidente:adminEmails: … # comptes Google qui reçoivent les alertes, séparés par des virgules
      environmentVariables:
        CI_SSH_KEY: { fn::secret: … } # clé privée de `el-presidente-ci`
    ```
@@ -121,6 +126,35 @@ sudo docker ps
 sudo docker logs presidente-api
 sudo docker exec presidente-litestream /usr/local/bin/litestream databases
 ```
+
+## Surveillance
+
+Tout tourne sur le serveur, sans service externe, sauf la sonde de disponibilité.
+
+- **Collecte** : VictoriaMetrics lit toutes les 30 s l'écoute interne de l'API (`:9464`,
+  jeton `METRICS_TOKEN`, jamais derrière Caddy), Litestream (`:9090`), node_exporter (volume
+  `/data`, mémoire, processeur) et vmalert. 30 jours d'historique dans le volume Docker
+  `presidente-metrics`, sur le disque du serveur : perdus au remplacement du serveur.
+- **Alertes** (`images/monitoring/rules.yml`) : Litestream arrêté, réplication bloquée
+  (écritures sans envoi vers la Storage Box), erreurs de Litestream, `/data` plein à 80 %,
+  mémoire faible, boucle de l'API en retard, coups lents, délestage. vmalert les envoie à
+  l'API, qui les relaie en **notifications push** aux comptes `adminEmails` : il faut être
+  abonné aux notifications (« 🔔 Me prévenir… ») sur au moins un appareil avec ce compte. Une
+  notification au déclenchement, un rappel toutes les 6 h, une à la résolution.
+- **Panne du serveur** : `.github/workflows/uptime.yml` interroge `/health` (base et boucle
+  d'événements vérifiées, sinon 503) et le site toutes les 5 minutes ; GitHub envoie un
+  e-mail en cas d'échec. GitHub suspend les workflows planifiés après 60 jours sans activité
+  du dépôt : les réactiver depuis l'onglet Actions.
+- **Graphiques** : interface de VictoriaMetrics par un tunnel SSH, rien d'exposé :
+
+  ```sh
+  ssh -N -L 8428:10.89.0.10:8428 admin@api.el-presidente.chegdali.fr
+  # puis http://localhost:8428/vmui (cibles collectées : http://localhost:8428/targets)
+  ```
+
+- **Essai des alertes** : `sudo docker stop presidente-litestream`, notification
+  « LitestreamArrete » dans les 6 minutes, puis `sudo docker start presidente-litestream` et
+  notification de résolution.
 
 Si un `pulumi up` s'interrompt pendant un remplacement du serveur, l'état peut croire des
 conteneurs présents qui n'existent pas sur le nouveau serveur : `pulumi refresh` (aperçu,

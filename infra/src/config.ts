@@ -45,8 +45,20 @@ export const config = {
    */
   storageBoxHostKey: hostKeyLine(cfg.get('storageBoxHostKey')),
 
-  /** Images publiées par la CI, par empreinte (ghcr.io/…@sha256:…). */
-  images: cfg.requireObject<{ api: string; caddy: string; litestream: string }>('images'),
+  /**
+   * Images publiées par la CI, par empreinte (ghcr.io/…@sha256:…). Celles de la surveillance
+   * sont facultatives : sans elles, pas de surveillance (avertissement au déploiement).
+   */
+  images: cfg.requireObject<{
+    api: string;
+    caddy: string;
+    litestream: string;
+    victoriametrics?: string;
+    vmalert?: string;
+    nodeExporter?: string;
+  }>('images'),
+  /** Comptes Google qui reçoivent les alertes (notifications push), séparés par des virgules (ESC). */
+  adminEmails: cfg.get('adminEmails') ?? '',
 
   vercelTeamId: cfg.require('vercelTeamId'),
   vercelProject: cfg.get('vercelProject') ?? 'el-presidente',

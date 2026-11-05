@@ -21,8 +21,20 @@ const schema = z
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
     VAPID_SUBJECT: z.string().optional(),
-    /** Jeton d'accès à /metrics ; sans jeton, /metrics est désactivé. */
+    /** Jeton de l'écoute interne (métriques, alertes) ; sans jeton, pas d'écoute interne. */
     METRICS_TOKEN: z.string().min(16).optional(),
+    /** Port de l'écoute interne (réseau Docker de surveillance), jamais exposé par Caddy. */
+    METRICS_PORT: z.coerce.number().int().positive().optional(),
+    /** Comptes Google qui reçoivent les alertes en notification push, séparés par des virgules. */
+    ADMIN_EMAILS: z
+      .string()
+      .default('')
+      .transform((v) =>
+        v
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean),
+      ),
     /** Derrière Caddy : l'adresse du client vient de X-Real-IP, posé par Caddy. */
     TRUST_PROXY: z.stringbool().default(false),
     /** Connexion de test (/test/login) pour le banc de charge et Playwright. Jamais en production. */

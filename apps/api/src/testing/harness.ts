@@ -18,6 +18,8 @@ import { startServer } from '../server';
 import type { Env } from '../shared/env';
 
 export const WEB_ORIGIN = 'https://web.test';
+export const METRICS_TOKEN = 'test-metrics-token-0123456789';
+export const ADMIN_EMAIL = 'admin@example.org';
 
 export class FakePush implements PushSender {
   readonly publicKey = 'test-public-key';
@@ -46,15 +48,18 @@ export async function startTestServer() {
     GOOGLE_CLIENT_SECRET: 'test',
     TRUST_PROXY: false,
     ENABLE_TEST_LOGIN: true,
+    METRICS_TOKEN: METRICS_TOKEN,
+    METRICS_PORT: 0, // port libre (écoute interne)
+    ADMIN_EMAILS: [ADMIN_EMAIL],
   };
   const running = await startServer({ env, db: database.db, rng: seededRng(99), now: () => clock.t, push, port: 0 });
   const base = `http://localhost:${running.server.port}`;
 
-  async function login(name: string) {
+  async function login(name: string, email?: string) {
     const res = await fetch(`${base}/test/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', origin: WEB_ORIGIN },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(email === undefined ? { name } : { name, email }),
     });
     const { userId, cookie } = (await res.json()) as { userId: string; cookie: string };
     const headers = { cookie, origin: WEB_ORIGIN };

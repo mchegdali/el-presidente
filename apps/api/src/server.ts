@@ -3,7 +3,10 @@
 import { chmodSync } from 'node:fs';
 import type { Database } from '@el-presidente/db/types';
 import { cryptoRng, type Rng } from '@el-presidente/game';
+import { sql } from '@el-presidente/db';
 import { createApp } from './app';
+import { AlertRelay } from './features/alerts/relay';
+import { createInternalApp } from './internal';
 import { createAuth } from './features/auth/auth';
 import { linkGuest } from './features/auth/link-guest';
 import { chatLimiter } from './features/chat/send-message/handler';
@@ -17,7 +20,7 @@ import { createSocketHandler, sweepSocketLimiters, type SocketContext } from './
 import type { Deps } from './shared/deps';
 import type { Env } from './shared/env';
 import { log } from './shared/logger';
-import { startLoopLagProbe } from './shared/metrics';
+import { metrics, startLoopLagProbe } from './shared/metrics';
 import { Scheduler } from './shared/scheduler';
 import { Shedder } from './shared/shedding';
 
@@ -32,6 +35,8 @@ export interface ServerOptions {
 }
 
 const IDLE_TABLE_MS = 10 * 60_000;
+/** Au-delà, `/health` répond 503 : la boucle d'événements est bloquée. */
+const HEALTHY_LOOP_LAG_MS = 1000;
 
 export async function startServer(options: ServerOptions) {
   const { env, db } = options;
@@ -65,13 +70,34 @@ export async function startServer(options: ServerOptions) {
     shedder,
     directAddress: (req, server) =>
       (server as { requestIP?: (r: Request) => { address: string; port: number } | null }).requestIP?.(req) ?? null,
-    gauges: () => ({
-      presidente_tables_loaded: [...deps.tables.all()].length,
-      presidente_connections: hub.connections,
-      presidente_pending_writes: deps.writer.size,
-      presidente_deadlines: deps.scheduler.size,
-    }),
+    healthy: () => {
+      try {
+        db.get(sql`select 1`);
+      } catch {
+        return false;
+      }
+      return metrics.loopLag < HEALTHY_LOOP_LAG_MS;
+    },
   });
+
+  // Écoute interne : métriques (VictoriaMetrics) et alertes (vmalert → notifications push).
+  const internal =
+    env.METRICS_TOKEN !== undefined && env.METRICS_PORT !== undefined
+      ? Bun.serve({
+          port: env.METRICS_PORT,
+          hostname: '0.0.0.0',
+          fetch: createInternalApp({
+            token: env.METRICS_TOKEN,
+            relay: new AlertRelay(deps, env.ADMIN_EMAILS),
+            gauges: () => ({
+              presidente_tables_loaded: [...deps.tables.all()].length,
+              presidente_connections: hub.connections,
+              presidente_pending_writes: deps.writer.size,
+              presidente_deadlines: deps.scheduler.size,
+            }),
+          }).fetch,
+        })
+      : null;
 
   const common = {
     fetch: (req: Request, srv: Bun.Server<SocketContext>) => app.fetch(req, srv),
@@ -121,6 +147,7 @@ export async function startServer(options: ServerOptions) {
 
   return {
     server,
+    internal,
     deps,
     app,
     auth,
@@ -130,6 +157,7 @@ export async function startServer(options: ServerOptions) {
       deps.scheduler.stop();
       shedder?.stop();
       server.stop(true);
+      void internal?.stop(true);
       deps.writer.flush();
       log.flush();
     },

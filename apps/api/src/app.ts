@@ -24,17 +24,18 @@ import { Forbidden, Unavailable } from './shared/errors';
 import type { AppEnv } from './shared/hono';
 import { fail } from './shared/http';
 import { log } from './shared/logger';
-import { metrics, renderMetrics } from './shared/metrics';
+import { metrics } from './shared/metrics';
 import type { Shedder } from './shared/shedding';
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export interface AppOptions {
-  env: Pick<Env, 'WEB_ORIGIN' | 'API_ORIGIN' | 'TRUST_PROXY' | 'METRICS_TOKEN' | 'ENABLE_TEST_LOGIN' | 'NODE_ENV'>;
+  env: Pick<Env, 'WEB_ORIGIN' | 'API_ORIGIN' | 'TRUST_PROXY' | 'ENABLE_TEST_LOGIN' | 'NODE_ENV'>;
   shedder?: Shedder | null;
   /** Adresse et port du client quand la requête ne passe pas par Caddy. */
   directAddress?: (req: Request, server: unknown) => { address: string; port: number } | null;
-  gauges?: () => Record<string, number>;
+  /** Santé : la base répond et la boucle d'événements n'est pas bloquée. */
+  healthy?: () => boolean;
 }
 
 export function createApp(deps: Deps, auth: Auth, options: AppOptions) {
@@ -84,12 +85,10 @@ export function createApp(deps: Deps, auth: Auth, options: AppOptions) {
     })
     .on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw))
     .use(sessionMiddleware(auth))
-    .get('/health', (c) => c.json({ ok: true as const }, 200))
-    .get('/metrics', (c) => {
-      const token = env.METRICS_TOKEN;
-      if (token === undefined || c.req.header('authorization') !== `Bearer ${token}`) return c.notFound();
-      return c.text(renderMetrics(options.gauges?.() ?? {}));
-    })
+    // Sonde externe (GitHub Actions) : 503 si la base ne répond pas ou si la boucle est bloquée.
+    .get('/health', (c) =>
+      (options.healthy?.() ?? true) ? c.json({ ok: true as const }, 200) : c.json({ ok: false as const }, 503),
+    )
     .get('/me', requireUser, (c) => c.json(c.get('me'), 200))
     .route(
       '/tables',

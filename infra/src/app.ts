@@ -1,6 +1,7 @@
 // Conteneurs, déployés par l'API Docker du serveur à travers SSH (utilisateur `deploy`,
 // limité à `docker system dial-stdio`). Ordre : restauration (une fois, si la base n'existe
-// pas encore et qu'une réplique existe) → API → Litestream → Caddy.
+// pas encore et qu'une réplique existe) → API → Litestream → Caddy ; surveillance à côté
+// (VictoriaMetrics, vmalert, node_exporter) sur un réseau Docker interne, sans Internet.
 //
 // Durcissement commun : système de fichiers en lecture seule, /tmp en mémoire, aucune
 // capacité, pas d'élévation de privilèges, utilisateur non root (fixé par chaque image).
@@ -69,6 +70,29 @@ const images = {
   caddy: pull('caddy', config.images.caddy),
   litestream: pull('litestream', config.images.litestream),
 };
+
+// Surveillance : images facultatives (publiées par la CI).
+const monitoringRefs = config.images.victoriametrics && config.images.vmalert && config.images.nodeExporter;
+if (!monitoringRefs) pulumi.log.warn('Images de surveillance absentes de `images` : aucune surveillance déployée.');
+
+/**
+ * Réseau de la surveillance : interne (aucun accès à Internet), sous-réseau fixe pour joindre
+ * VictoriaMetrics par un tunnel SSH (`ssh -N -L 8428:10.89.0.10:8428 admin@…`). L'API et
+ * Litestream y sont branchés en plus du réseau par défaut, qui leur garde l'accès sortant.
+ */
+const MONITORING_SUBNET = '10.89.0.0/24';
+const VICTORIAMETRICS_IP = '10.89.0.10';
+const monitoringNet = new docker.Network(
+  'monitoring',
+  { name: 'presidente-monitoring', internal: true, ipamConfigs: [{ subnet: MONITORING_SUBNET }] },
+  opts,
+);
+const onMonitoring = {
+  networkMode: 'bridge',
+  networksAdvanced: [{ name: monitoringNet.name }],
+} satisfies Partial<docker.ContainerArgs>;
+/** Port de l'écoute interne de l'API (métriques, alertes), jamais publié. */
+const API_INTERNAL_PORT = 9464;
 
 const hardened = {
   readOnly: true,
@@ -141,6 +165,8 @@ const apiEnv = pulumi
     `COOKIE_DOMAIN=${config.zone}`,
     `BETTER_AUTH_SECRET=${auth}`,
     `METRICS_TOKEN=${metrics}`,
+    `METRICS_PORT=${API_INTERNAL_PORT}`,
+    `ADMIN_EMAILS=${config.adminEmails}`,
     `GOOGLE_CLIENT_ID=${googleId}`,
     `GOOGLE_CLIENT_SECRET=${googleSecret}`,
     ...(config.vapidPublicKey && vapidPrivate
@@ -160,6 +186,7 @@ const api = new docker.Container(
     image: images.api,
     envs: apiEnv,
     mounts: [bind('/data/db', '/data/db'), bind('/run/presidente', '/run/presidente')],
+    ...onMonitoring,
     ...limit(1536),
     restart: 'unless-stopped',
     // Le temps d'écrire les manches en attente et de fermer la base.
@@ -177,10 +204,71 @@ if (hostKeyKnown) {
       image: images.litestream,
       envs: litestreamEnv,
       mounts: [bind('/data/db', '/data/db')],
+      ...onMonitoring,
       ...limit(256),
       restart: 'unless-stopped',
     },
     { ...opts, dependsOn: [api] },
+  );
+}
+
+if (monitoringRefs) {
+  const internalOnly = { networksAdvanced: [{ name: monitoringNet.name }] };
+
+  // Données de VictoriaMetrics sur le disque du serveur (volume Docker nommé, initialisé par
+  // l'image) : l'historique (30 jours) repart de zéro au remplacement du serveur.
+  const metricsVolume = new docker.Volume('metrics', { name: 'presidente-metrics' }, opts);
+  new docker.Container(
+    'victoriametrics',
+    {
+      ...hardened,
+      name: 'presidente-victoriametrics',
+      image: pull('victoriametrics', config.images.victoriametrics!),
+      envs: [pulumi.interpolate`METRICS_TOKEN=${metricsToken.result}`],
+      mounts: [{ type: 'volume', source: metricsVolume.name, target: '/storage' }],
+      networksAdvanced: [{ name: monitoringNet.name, ipv4Address: VICTORIAMETRICS_IP }],
+      ...limit(256),
+      restart: 'unless-stopped',
+    },
+    { ...opts, dependsOn: [api] },
+  );
+
+  new docker.Container(
+    'vmalert',
+    {
+      ...hardened,
+      name: 'presidente-vmalert',
+      image: pull('vmalert', config.images.vmalert!),
+      envs: [pulumi.interpolate`notifier_bearerToken=${metricsToken.result}`],
+      ...internalOnly,
+      ...limit(64),
+      restart: 'unless-stopped',
+    },
+    { ...opts, dependsOn: [api] },
+  );
+
+  // Seulement le volume /data (lecture seule) : /proc et /sys du conteneur suffisent pour la
+  // mémoire et le processeur, qui ne sont pas isolés par Docker.
+  new docker.Container(
+    'node-exporter',
+    {
+      ...hardened,
+      name: 'presidente-node-exporter',
+      image: pull('node-exporter', config.images.nodeExporter!),
+      command: [
+        '--collector.disable-defaults',
+        '--collector.filesystem',
+        '--collector.meminfo',
+        '--collector.cpu',
+        '--collector.loadavg',
+        '--collector.filesystem.mount-points-include=^/host/data$',
+      ],
+      mounts: [{ ...bind('/data', '/host/data'), readOnly: true }],
+      ...internalOnly,
+      ...limit(64),
+      restart: 'unless-stopped',
+    },
+    opts,
   );
 }
 
