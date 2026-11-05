@@ -32,6 +32,8 @@ export const user = sqliteTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
   image: text('image'),
+  /** Compte invité (plugin `anonymous` de better-auth) : pseudo seulement, sans Google. */
+  isAnonymous: integer('is_anonymous', { mode: 'boolean' }).notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

@@ -67,6 +67,29 @@ export async function startTestServer() {
     };
   }
 
+  /** Compte invité, créé comme par le site (« Jouer sans compte »). */
+  async function guest() {
+    const res = await fetch(`${base}/api/auth/sign-in/anonymous`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: WEB_ORIGIN },
+      body: '{}',
+    });
+    if (!res.ok) throw new Error(`connexion invité refusée : ${res.status}`);
+    const { user } = (await res.json()) as { user: { id: string; name: string } };
+    const cookie = res.headers
+      .getSetCookie()
+      .map((c) => c.split(';')[0]!)
+      .join('; ');
+    const headers = { cookie, origin: WEB_ORIGIN };
+    return {
+      userId: user.id,
+      name: user.name,
+      cookie,
+      api: hc<AppType>(base, { headers }),
+      connect: (code: string) => connect(code, headers),
+    };
+  }
+
   async function connect(code: string, headers: Record<string, string>) {
     const ws = new WebSocket(`${base.replace('http', 'ws')}/tables/${code}/ws`, { headers } as never);
     ws.binaryType = 'arraybuffer';
@@ -125,6 +148,7 @@ export async function startTestServer() {
     push,
     database,
     login,
+    guest,
     async close() {
       await running.stop();
       database.close();

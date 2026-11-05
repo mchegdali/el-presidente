@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { authClient } from '@/lib/auth-client';
+import { KeepAccountButton } from '../../auth/SignIn';
 import { PushToggle } from '../../push/PushToggle';
 import { useTableContext } from '../context';
 import { NoTwoFinishSetting } from './NoTwoFinishSetting';
@@ -12,6 +14,7 @@ export function TopBar({ title }: { title?: string }) {
   const { table, conn, actions, isHost, inRound } = useTableContext();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
+  const guest = authClient.useSession().data?.user.isAnonymous === true;
 
   const cancelRound = () => {
     setMenu(false);
@@ -64,6 +67,7 @@ export function TopBar({ title }: { title?: string }) {
                   Annuler la manche
                 </button>
               )}
+              {guest && <KeepAccountButton />}
               <button type="button" role="menuitem" onClick={leave}>
                 Quitter la table
               </button>

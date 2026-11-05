@@ -65,3 +65,22 @@ test('trois joueurs : créer, rejoindre, jouer un coup, discuter', async ({ brow
   await shot(beto!, 'partie');
   await expect(opener!.getByText("À vous d'ouvrir le pli !")).toHaveCount(0);
 });
+
+test('invité : rejoindre une table sans compte Google, avec un pseudo', async ({ browser }) => {
+  const ana = await player(browser, 'Ana');
+  await ana.goto('/');
+  await ana.getByRole('button', { name: 'Créer une table' }).click();
+  await ana.waitForURL(/\/t\/[A-Z0-9]{5}$/);
+
+  const guest = await (await browser.newContext()).newPage();
+  await guest.goto(ana.url());
+  await shot(guest, 'rejoindre-sans-compte');
+  await guest.getByRole('button', { name: 'Jouer sans compte' }).click();
+  const name = guest.getByRole('textbox', { name: 'Votre nom à la table' });
+  await expect(name).toHaveValue('');
+  await name.fill('Lola');
+  await guest.getByRole('button', { name: 'Prendre place' }).click();
+  await expect(guest.getByText('La sala de espera')).toBeVisible();
+  await expect(ana.getByText('Lola')).toBeVisible();
+  await shot(guest, 'invite');
+});

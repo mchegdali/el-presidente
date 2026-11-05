@@ -8,7 +8,7 @@ import { Field } from '@/components/Field/Field';
 import { Panel } from '@/components/Panel/Panel';
 import { api, read } from '@/lib/api';
 import { authClient } from '@/lib/auth-client';
-import { SignInButton } from '../auth/SignIn';
+import { KeepAccountButton, SignInChoice } from '../auth/SignIn';
 import styles from './Home.module.css';
 
 const CODE = /^[A-HJ-NP-Z2-9]{5}$/;
@@ -59,7 +59,8 @@ export function HomeForms() {
               <Field
                 label="Votre nom à la table"
                 name="name"
-                defaultValue={session.data.user.name.slice(0, 20)}
+                // Invité : pas de nom de compte à proposer, le pseudo est à choisir.
+                defaultValue={session.data.user.isAnonymous ? '' : session.data.user.name.slice(0, 20)}
                 maxLength={20}
                 placeholder="Pancho"
                 autoComplete="name"
@@ -70,12 +71,7 @@ export function HomeForms() {
               </Button>
             </>
           ) : (
-            <>
-              <p className="muted small">
-                Un compte est nécessaire pour jouer et discuter (pas de pseudonyme anonyme).
-              </p>
-              <SignInButton />
-            </>
+            <SignInChoice />
           )}
         </Panel>
 
@@ -99,7 +95,15 @@ export function HomeForms() {
       </div>
       {session.data && (
         <p className={styles.account}>
-          Connecté : <strong>{session.data.user.name}</strong> ·{' '}
+          {session.data.user.isAnonymous ? (
+            <>
+              Invité sur cet appareil · <KeepAccountButton className={styles.signOut} /> ·{' '}
+            </>
+          ) : (
+            <>
+              Connecté : <strong>{session.data.user.name}</strong> ·{' '}
+            </>
+          )}
           <button type="button" className={styles.signOut} onClick={() => void authClient.signOut()}>
             Se déconnecter
           </button>

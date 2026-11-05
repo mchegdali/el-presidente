@@ -5,6 +5,7 @@ import type { Database } from '@el-presidente/db/types';
 import { cryptoRng, type Rng } from '@el-presidente/game';
 import { createApp } from './app';
 import { createAuth } from './features/auth/auth';
+import { linkGuest } from './features/auth/link-guest';
 import { chatLimiter } from './features/chat/send-message/handler';
 import { onTurnDeadline, restoreDeadlines } from './features/game/turn-timeout/handler';
 import { purgeExpired } from './features/privacy/purge';
@@ -54,7 +55,7 @@ export async function startServer(options: ServerOptions) {
     rng: options.rng ?? cryptoRng,
     now,
   };
-  const auth = createAuth(db, env);
+  const auth = createAuth(db, env, { onLinkGuest: (guestId, user) => linkGuest(deps, guestId, user) });
   const shedder = env.NODE_ENV === 'production' ? new Shedder(3 * 1024 ** 3) : null;
   shedder?.start();
   startLoopLagProbe();
@@ -102,9 +103,12 @@ export async function startServer(options: ServerOptions) {
   // Durées de conservation (page /confidentialite du site) : au démarrage, puis toutes les heures.
   const purge = () => {
     try {
-      const live = new Set(Array.from(deps.tables.all(), (t) => t.id));
-      const n = purgeExpired(db, now(), live);
-      if (n.messages + n.sessions + n.verifications + n.tables > 0) log.info('purge', n);
+      const loaded = [...deps.tables.all()];
+      const n = purgeExpired(db, now(), {
+        tables: new Set(loaded.map((t) => t.id)),
+        users: new Set(loaded.flatMap((t) => t.players.map((p) => p.userId))),
+      });
+      if (n.messages + n.sessions + n.verifications + n.tables + n.guests > 0) log.info('purge', n);
     } catch (error) {
       log.error('purge', { error: String(error) });
     }

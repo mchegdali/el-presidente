@@ -33,11 +33,11 @@ test('purge : messages de plus d’un an (et leurs signalements), sessions et v�
     .values({ id: 'v', identifier: 'x', value: 'y', expiresAt: new Date(now - 1) })
     .run();
 
-  expect(purgeExpired(db, now)).toEqual({ messages: 1, sessions: 1, verifications: 1, tables: 0 });
+  expect(purgeExpired(db, now)).toEqual({ messages: 1, sessions: 1, verifications: 1, tables: 0, guests: 0 });
   expect(db.select({ id: schema.messages.id }).from(schema.messages).all()).toEqual([{ id: b!.id }]);
   expect(db.select().from(schema.messageReports).all()).toEqual([]);
   expect(db.select({ id: schema.session.id }).from(schema.session).all()).toEqual([{ id: 's2' }]);
-  expect(purgeExpired(db, now)).toEqual({ messages: 0, sessions: 0, verifications: 0, tables: 0 });
+  expect(purgeExpired(db, now)).toEqual({ messages: 0, sessions: 0, verifications: 0, tables: 0, guests: 0 });
 });
 
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id).sort();
@@ -78,7 +78,7 @@ test('purge : tables sans activité depuis 30 jours vidées, ligne gardée tant 
     ])
     .run();
 
-  expect(purgeExpired(db, now, new Set(['live'])).tables).toBe(2);
+  expect(purgeExpired(db, now, { tables: new Set(['live']) }).tables).toBe(2);
   expect(ids(db.select({ id: lobbies.id }).from(lobbies).all())).toEqual(['chat', 'game', 'live', 'talk']);
   expect(ids(db.select({ id: players.lobbyId }).from(players).all())).toEqual(['game', 'live', 'talk']);
   expect(ids(db.select({ id: games.lobbyId }).from(games).all())).toEqual(['game']);
@@ -91,6 +91,9 @@ test('purge : tables sans activité depuis 30 jours vidées, ligne gardée tant 
   ).toContain('vieux');
 
   // Un an plus tard, le message a expiré : la ligne vide disparaît.
-  purgeExpired(db, now + MESSAGE_RETENTION_MS + 1, new Set(['game', 'live', 'talk']));
+  purgeExpired(db, now + MESSAGE_RETENTION_MS + 1, {
+    tables: new Set(['game', 'live', 'talk']),
+    users: new Set(['v']),
+  });
   expect(ids(db.select({ id: lobbies.id }).from(lobbies).all())).toEqual(['game', 'live', 'talk']);
 });

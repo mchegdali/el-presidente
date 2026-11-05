@@ -10,7 +10,7 @@ import { Field } from '@/components/Field/Field';
 import { Page } from '@/components/Page/Page';
 import { Panel } from '@/components/Panel/Panel';
 import { authClient } from '@/lib/auth-client';
-import { SignInButton } from '../../auth/SignIn';
+import { SignInChoice } from '../../auth/SignIn';
 import type { TableActions } from '../actions';
 import styles from './JoinForm.module.css';
 
@@ -45,7 +45,7 @@ export function JoinForm({ table, actions }: { table: TableSnapshot; actions: Ta
               <Field
                 label="Votre nom à la table"
                 name="name"
-                defaultValue={session.data.user.name.slice(0, 20)}
+                defaultValue={session.data.user.isAnonymous ? '' : session.data.user.name.slice(0, 20)}
                 maxLength={20}
                 autoComplete="name"
                 required
@@ -55,10 +55,7 @@ export function JoinForm({ table, actions }: { table: TableSnapshot; actions: Ta
               </Button>
             </>
           ) : (
-            <>
-              <p className="muted">Connectez-vous pour jouer et discuter avec la table.</p>
-              <SignInButton />
-            </>
+            <SignInChoice />
           )}
           <Link href="/" className={styles.home}>
             ← Accueil

@@ -51,6 +51,11 @@ export default function PrivacyPage() {
               <td>Tant que le compte existe</td>
             </tr>
             <tr>
+              <td>Compte invité (« Jouer sans compte ») : identifiant technique, pseudo choisi à la table</td>
+              <td>Jouer sans compte Google</td>
+              <td>Supprimé 30 jours après votre dernière visite (expiration de la session)</td>
+            </tr>
+            <tr>
               <td>Session : adresse IP, navigateur utilisé</td>
               <td>Sécurité du compte</td>
               <td>30 jours au plus (durée de la session), puis supprimée</td>

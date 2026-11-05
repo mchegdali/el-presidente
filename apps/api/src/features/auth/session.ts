@@ -7,13 +7,17 @@ export interface CurrentUser {
   id: string;
   name: string;
   image: string | null;
+  /** Compte invité (sans Google). */
+  isAnonymous: boolean;
 }
 
 export type AuthVariables = { user: CurrentUser | null };
 
 export async function userFromHeaders(auth: Auth, headers: Headers): Promise<CurrentUser | null> {
   const s = await auth.api.getSession({ headers });
-  return s === null ? null : { id: s.user.id, name: s.user.name, image: s.user.image ?? null };
+  return s === null
+    ? null
+    : { id: s.user.id, name: s.user.name, image: s.user.image ?? null, isAnonymous: s.user.isAnonymous === true };
 }
 
 /** Pose `c.var.user` (null si pas de session). */

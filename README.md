@@ -1,7 +1,9 @@
 # El Presidente
 
 Le jeu de cartes **Président**, à la mexicaine, jouable à plusieurs en temps réel depuis
-téléphones et ordinateurs. On se connecte avec Google, on crée une table, on partage le lien.
+téléphones et ordinateurs. On se connecte avec Google, ou on joue sans compte (invité), on
+crée une table, on partage le lien. Un invité peut ensuite garder son compte en se
+connectant avec Google : ses places et ses messages suivent.
 
 ## Règles de la casa
 

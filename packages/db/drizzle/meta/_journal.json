@@ -22,6 +22,13 @@
       "when": 1793838287619,
       "tag": "0002_message_port",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793838399285,
+      "tag": "0003_guest_accounts",
+      "breakpoints": true
     }
   ]
 }
