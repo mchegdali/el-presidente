@@ -37,6 +37,9 @@ export function createAuth(db: Database, env: Env, hooks: AuthHooks = {}) {
       },
     },
     trustedOrigins: [env.WEB_ORIGIN],
+    // En test seulement : une connexion sans Google qui passe par better-auth, pour éprouver le
+    // rattachement d'un invité (le plugin `anonymous` réagit à toute connexion, Google compris).
+    emailAndPassword: { enabled: env.NODE_ENV === 'test' },
     session: {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,

@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { eq, schema } from '@el-presidente/db';
 import type { TableSnapshot } from '@el-presidente/game/protocol';
-import { startTestServer, type TestServer } from '../../testing/harness';
+import { startTestServer, WEB_ORIGIN, type TestServer } from '../../testing/harness';
 import { purgeExpired } from '../privacy/purge';
 import { linkGuest } from './link-guest';
 
@@ -85,6 +85,29 @@ describe('comptes invités', () => {
     // Après rechargement depuis la base, même état.
     for (const code of [a, b]) s.deps.tables.remove(s.deps.tables.cached(code)!);
     expect((await snapshot(google.api.tables[':code'].$get({ param: { code: a } }))).me).toBe(0);
+  });
+
+  test('de bout en bout par better-auth : une connexion depuis la session invité rattache ses places', async () => {
+    const g = await s.guest();
+    const code = ((await (await g.api.tables.$post({ json: { name: 'Pancho' } })).json()) as { code: string }).code;
+
+    // Inscription depuis le navigateur de l'invité (son cookie) : même chemin que le retour de Google.
+    const res = await fetch(`${s.base}/api/auth/sign-up/email`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: WEB_ORIGIN, cookie: g.cookie },
+      body: JSON.stringify({ name: 'Pancho Villa', email: 'pancho@example.org', password: 'mot-de-passe-solide' }),
+    });
+    expect(res.status).toBe(200);
+    const { user } = (await res.json()) as { user: { id: string } };
+    expect(user.id).not.toBe(g.userId);
+
+    // L'invité a été supprimé par better-auth, après que sa place a suivi.
+    const { db } = s.deps;
+    expect(db.select().from(schema.user).where(eq(schema.user.id, g.userId)).get()).toBeUndefined();
+    const table = s.deps.tables.cached(code)!;
+    expect(table.players.map((p) => p.userId)).toEqual([user.id]);
+    expect(table.hostId).toBe(user.id);
+    expect(db.select().from(schema.players).where(eq(schema.players.userId, user.id)).all().length).toBe(1);
   });
 
   test('purge : invité sans session valide supprimé, sauf s’il est assis à une table chargée', async () => {
